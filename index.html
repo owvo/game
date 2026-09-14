@@ -3,37 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Walkable Room</title>
+  <title>Jumby - Grid World</title>
   <style>
     body {
       margin: 0;
       padding: 0;
-      background-color: #1a1a1a;
+      background-color: #0b1a0d;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       height: 100vh;
       overflow: hidden;
-      font-family: sans-serif;
+      font-family: monospace;
     }
 
     #arcade-logo {
-      width: 320px;
+      width: 280px;
       height: auto;
-      max-height: 100px;
-      margin-bottom: 20px;
+      margin-bottom: 15px;
       image-rendering: pixelated;
-      object-fit: contain;
     }
 
     #room {
       width: 600px;
       height: 400px;
-      background-color: #333;
-      border: none; /* Borderless */
       position: relative;
       overflow: hidden;
+      display: grid;
+      grid-template-columns: repeat(12, 50px);
+      grid-template-rows: repeat(8, 50px);
+    }
+
+    .tile {
+      width: 50px;
+      height: 50px;
+      background-size: cover;
+      image-rendering: pixelated;
     }
 
     #player {
@@ -43,23 +49,65 @@
       image-rendering: pixelated;
       background-size: contain;
       background-repeat: no-repeat;
+      z-index: 10;
+    }
+
+    #dialog-box {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.85);
+      color: white;
+      padding: 10px 15px;
+      border: 2px solid #fff;
+      font-size: 14px;
+      display: none;
+      z-index: 20;
     }
   </style>
 </head>
 <body>
 
-<!-- Arcade Top Logo -->
-<img id="arcade-logo" src="logo.png" alt="Game Logo">
+<img id="arcade-logo" src="logo.png" alt="JUMBY">
 
 <div id="room">
   <div id="player"></div>
+  <div id="dialog-box"></div>
 </div>
 
 <script>
+  const TILE_SIZE = 50;
+  const COLS = ['A','B','C','D','E','F','G','H','I','J','K','L'];
   const player = document.getElementById('player');
   const room = document.getElementById('room');
+  const dialogBox = document.getElementById('dialog-box');
 
-  // Sprite animation dictionaries
+  // Define custom tiles here (Default is floor tile: tile.png)
+  const defaultTile = 'tile.png';
+  const specialTiles = {
+    'C3': { texture: 'rock.png', solid: true, message: "It's a solid rock!" },
+    'H5': { texture: 'chest.png', solid: true, message: "You opened the chest!" }
+  };
+
+  // Generate Tile Map
+  const gridMap = {};
+  for (let r = 1; r <= 8; r++) {
+    for (let c = 0; c < 12; c++) {
+      const tileName = `${COLS[c]}${r}`;
+      const tileDiv = document.createElement('div');
+      tileDiv.className = 'tile';
+      tileDiv.id = `tile-${tileName}`;
+
+      const config = specialTiles[tileName] || { texture: defaultTile, solid: false };
+      tileDiv.style.backgroundImage = `url('${config.texture}')`;
+      
+      gridMap[tileName] = { element: tileDiv, x: c * TILE_SIZE, y: (r - 1) * TILE_SIZE, ...config };
+      room.appendChild(tileDiv);
+    }
+  }
+
+  // Preload Sprites
   const animations = {
     idle: ['idle_1.png', 'idle_2.png'],
     down: ['front_1.png', 'front_2.png', 'front_3.png', 'front_4.png'],
@@ -68,36 +116,56 @@
     right: ['right_1.png', 'right_2.png', 'right_3.png', 'right_4.png']
   };
 
-  // Preload all images into cache to eliminate flicker/disappearing frame issues
-  const preloadedImages = [];
-  Object.values(animations).flat().concat(['logo.png']).forEach((src) => {
-    const img = new Image();
-    img.src = src;
-    preloadedImages.push(img);
-  });
-
-  let posX = 276;
-  let posY = 160;
-  const speed = 3;
-  
-  let frameIndex = 0;
-  let currentDir = 'down';
-  let isMoving = false;
-  let animTimer = 0;
-
+  let posX = 250, posY = 150, speed = 3;
+  let frameIndex = 0, currentDir = 'down', isMoving = false, animTimer = 0;
   const keys = {};
 
   window.addEventListener('keydown', (e) => {
     keys[e.key.toLowerCase()] = true;
+    if (e.key.toLowerCase() === 'e') interact();
   });
 
-  window.addEventListener('keyup', (e) => {
-    keys[e.key.toLowerCase()] = false;
-  });
+  window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+  // Collision Detection
+  function isColliding(newX, newY) {
+    const playerBox = { left: newX + 4, right: newX + 44, top: newY + 40, bottom: newY + 80 }; // Feet hitbox
+
+    for (const tileKey in gridMap) {
+      const tile = gridMap[tileKey];
+      if (tile.solid) {
+        if (playerBox.right > tile.x && playerBox.left < tile.x + TILE_SIZE &&
+            playerBox.bottom > tile.y && playerBox.top < tile.y + TILE_SIZE) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  // Interact Action (E key)
+  function interact() {
+    let checkX = posX + 24;
+    let checkY = posY + 60;
+
+    if (currentDir === 'up') checkY -= 30;
+    if (currentDir === 'down') checkY += 30;
+    if (currentDir === 'left') checkX -= 30;
+    if (currentDir === 'right') checkX += 30;
+
+    const colIndex = Math.floor(checkX / TILE_SIZE);
+    const rowIndex = Math.floor(checkY / TILE_SIZE) + 1;
+    const tileName = `${COLS[colIndex]}${rowIndex}`;
+
+    if (gridMap[tileName] && gridMap[tileName].message) {
+      dialogBox.innerText = gridMap[tileName].message;
+      dialogBox.style.display = 'block';
+      setTimeout(() => { dialogBox.style.display = 'none'; }, 2500);
+    }
+  }
 
   function gameLoop() {
-    let dx = 0;
-    let dy = 0;
+    let dx = 0, dy = 0;
 
     if (keys['w'] || keys['arrowup']) { dy -= speed; currentDir = 'up'; }
     else if (keys['s'] || keys['arrowdown']) { dy += speed; currentDir = 'down'; }
@@ -105,38 +173,25 @@
     if (keys['a'] || keys['arrowleft']) { dx -= speed; currentDir = 'left'; }
     else if (keys['d'] || keys['arrowright']) { dx += speed; currentDir = 'right'; }
 
-    const currentlyMoving = dx !== 0 || dy !== 0;
+    const nextX = Math.max(0, Math.min(room.clientWidth - 48, posX + dx));
+    const nextY = Math.max(0, Math.min(room.clientHeight - 80, posY + dy));
 
-    // Reset frame state on movement toggle
-    if (currentlyMoving !== isMoving) {
-      isMoving = currentlyMoving;
-      frameIndex = 0;
-      animTimer = 0;
-    }
-
-    // Keep sprite in room boundaries
-    posX = Math.max(0, Math.min(room.clientWidth - 48, posX + dx));
-    posY = Math.max(0, Math.min(room.clientHeight - 80, posY + dy));
+    if (!isColliding(nextX, posY)) posX = nextX;
+    if (!isColliding(posX, nextY)) posY = nextY;
 
     player.style.left = posX + 'px';
     player.style.top = posY + 'px';
 
-    // Animation Speed Controller
+    // Animation Switcher
     animTimer++;
+    const currentlyMoving = dx !== 0 || dy !== 0;
+    const activeAnim = currentlyMoving ? animations[currentDir] : animations.idle;
+    const rate = currentlyMoving ? 8 : 20;
 
-    if (isMoving) {
-      const currentFrames = animations[currentDir];
-      if (animTimer % 8 === 0) { // Walk speed
-        frameIndex = (frameIndex + 1) % currentFrames.length;
-      }
-      player.style.backgroundImage = `url('${currentFrames[frameIndex]}')`;
-    } else {
-      const currentFrames = animations.idle;
-      if (animTimer % 20 === 0) { // Idle bounce speed
-        frameIndex = (frameIndex + 1) % currentFrames.length;
-      }
-      player.style.backgroundImage = `url('${currentFrames[frameIndex]}')`;
+    if (animTimer % rate === 0) {
+      frameIndex = (frameIndex + 1) % activeAnim.length;
     }
+    player.style.backgroundImage = `url('${activeAnim[frameIndex]}')`;
 
     requestAnimationFrame(gameLoop);
   }
