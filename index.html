@@ -11,20 +11,23 @@
       background-color: #0b1a0d;
       display: flex;
       flex-direction: column;
-      justify-content: center;
+      justify-content: flex-start;
       align-items: center;
-      height: 100vh;
+      min-height: 100vh;
       overflow: hidden;
       font-family: monospace;
     }
 
+    /* Logo is made 4x larger (1120px) and pushed up to top of screen */
     #arcade-logo {
-      width: 280px;
+      width: 1120px;
       height: auto;
-      margin-bottom: 15px;
+      margin-top: 10px;
+      margin-bottom: 20px;
       image-rendering: pixelated;
     }
 
+    /* Room scaled 1.5x larger */
     #room {
       width: 600px;
       height: 400px;
@@ -33,6 +36,8 @@
       display: grid;
       grid-template-columns: repeat(12, 50px);
       grid-template-rows: repeat(8, 50px);
+      transform: scale(1.5);
+      transform-origin: top center;
     }
 
     .tile {
@@ -83,7 +88,6 @@
   const room = document.getElementById('room');
   const dialogBox = document.getElementById('dialog-box');
 
-  // Define custom tiles here (Default is floor tile: tile.png)
   const defaultTile = 'tile.png';
   const specialTiles = {
     'C3': { texture: 'rock.png', solid: true, message: "It's a solid rock!" },
@@ -129,7 +133,7 @@
 
   // Collision Detection
   function isColliding(newX, newY) {
-    const playerBox = { left: newX + 4, right: newX + 44, top: newY + 40, bottom: newY + 80 }; // Feet hitbox
+    const playerBox = { left: newX + 4, right: newX + 44, top: newY + 40, bottom: newY + 80 };
 
     for (const tileKey in gridMap) {
       const tile = gridMap[tileKey];
