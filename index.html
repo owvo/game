@@ -58,6 +58,11 @@
       image-rendering: pixelated;
     }
 
+    /* Flip top doors upside down */
+    .door-top {
+      transform: rotate(180deg);
+    }
+
     #player {
       width: 48px;
       height: 80px;
@@ -137,17 +142,20 @@
               'A2','A3','A4','A5','A6','A7','A8',
               'L2','L3','L4','L5','L6','L7','L8'],
       doors: {
-        'F8': { targetRoom: 2, spawnX: 276, spawnY: 20 },
-        'G8': { targetRoom: 2, spawnX: 276, spawnY: 20 }
+        'F8': { targetRoom: 2, spawnX: 276, spawnY: 60 }, // Spawns near top of Room 2
+        'G8': { targetRoom: 2, spawnX: 276, spawnY: 60 }
       },
       hasOrb: false
     },
     2: {
-      walls: ['A1','A2','A3','A4','A5','A6','A7','A8',
-              'L1','L2','L3','L4','L5','L6','L7','L8'],
+      walls: ['A1','B1','C1','D1','E1','H1','I1','J1','K1','L1',
+              'A2','A3','A4','A5','A6','A7','A8',
+              'L2','L3','L4','L5','L6','L7','L8'],
       doors: {
-        'F8': { targetRoom: 1, spawnX: 276, spawnY: 20 },
-        'G8': { targetRoom: 1, spawnX: 276, spawnY: 20 }
+        'F1': { targetRoom: 1, spawnX: 276, spawnY: 260, isTop: true }, // Top door back to Room 1
+        'G1': { targetRoom: 1, spawnX: 276, spawnY: 260, isTop: true },
+        'F8': { targetRoom: 1, spawnX: 276, spawnY: 260 }, // Bottom door back to Room 1
+        'G8': { targetRoom: 1, spawnX: 276, spawnY: 260 }
       },
       hasOrb: true
     }
@@ -186,12 +194,16 @@
       for (let c = 0; c < 12; c++) {
         const tileName = `${COLS[c]}${r}`;
         const tile = gridMap[tileName];
+        tile.element.className = 'tile'; // Reset classes
 
         if (roomData.walls.includes(tileName)) {
           tile.element.style.backgroundImage = "url('wall.png')";
           tile.solid = true;
         } else if (roomData.doors[tileName]) {
           tile.element.style.backgroundImage = "url('door.png')";
+          if (roomData.doors[tileName].isTop) {
+            tile.element.classList.add('door-top');
+          }
           tile.solid = false;
         } else {
           tile.element.style.backgroundImage = "url('texture1.png')";
@@ -203,11 +215,12 @@
     orb.style.display = roomData.hasOrb ? 'block' : 'none';
   }
 
+  // Complete Animations Mapping including new side idles
   const animations = {
     idle_down: ['idle_1.png', 'idle_2.png'],
     idle_up: ['backidle_1.png', 'backidle_2.png'],
-    idle_left: ['idle_1.png', 'idle_2.png'],
-    idle_right: ['idle_1.png', 'idle_2.png'],
+    idle_left: ['leftidle_1.png', 'leftidle_2.png'],
+    idle_right: ['rightidle_1.png', 'rightidle_2.png'],
     down: ['front_1.png', 'front_2.png', 'front_3.png', 'front_4.png'],
     up: ['back_1.png', 'back_2.png', 'back_3.png', 'back_4.png'],
     left: ['left_1.png', 'left_2.png', 'left_3.png', 'left_4.png'],
@@ -327,6 +340,12 @@
       if (animTimer % rate === 0) {
         frameIndex = (frameIndex + 1) % animations[animKey].length;
       }
+
+      // Safeguard against boundary mismatches
+      if (frameIndex >= animations[animKey].length) {
+        frameIndex = 0;
+      }
+
       showFrame(animKey, frameIndex);
 
       if (animTimer % 25 === 0) {
