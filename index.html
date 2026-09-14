@@ -1,122 +1,3 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jumby - Grid World</title>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #0b1a0d;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      align-items: center;
-      min-height: 100vh;
-      overflow: hidden;
-      font-family: monospace;
-    }
-
-    #arcade-logo {
-      width: 1120px;
-      height: auto;
-      margin-top: 10px;
-      margin-bottom: 20px;
-      image-rendering: pixelated;
-    }
-
-    #room {
-      width: 600px;
-      height: 400px;
-      position: relative;
-      overflow: hidden;
-      display: grid;
-      grid-template-columns: repeat(12, 50px);
-      grid-template-rows: repeat(8, 50px);
-      transform: scale(1.5);
-      transform-origin: top center;
-    }
-
-    /* Screen Transition Overlay */
-    #fade-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-color: black;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease-in-out;
-      z-index: 100;
-    }
-
-    .tile {
-      width: 50px;
-      height: 50px;
-      background-size: cover;
-      image-rendering: pixelated;
-    }
-
-    #player {
-      width: 48px;
-      height: 80px;
-      position: absolute;
-      z-index: 10;
-    }
-
-    #player img {
-      width: 100%;
-      height: 100%;
-      position: absolute;
-      top: 0;
-      left: 0;
-      display: none;
-      image-rendering: pixelated;
-      object-fit: contain;
-    }
-
-    /* Animated Central Orb Element */
-    #orb {
-      width: 100px;
-      height: 100px;
-      position: absolute;
-      left: 250px; /* Center of F4, F5, G4, G5 */
-      top: 150px;
-      z-index: 5;
-      background-size: contain;
-      background-repeat: no-repeat;
-      image-rendering: pixelated;
-      display: none;
-    }
-
-    #dialog-box {
-      position: absolute;
-      bottom: 10px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.85);
-      color: white;
-      padding: 10px 15px;
-      border: 2px solid #fff;
-      font-size: 14px;
-      display: none;
-      z-index: 20;
-    }
-  </style>
-</head>
-<body>
-
-<img id="arcade-logo" src="logo.png" alt="JUMBY">
-
-<div id="room">
-  <div id="fade-overlay"></div>
-  <div id="orb"></div>
-  <div id="player"></div>
-  <div id="dialog-box"></div>
-</div>
-
 <script>
   const TILE_SIZE = 50;
   const COLS = ['A','B','C','D','E','F','G','H','I','J','K','L'];
@@ -126,6 +7,10 @@
   const orb = document.getElementById('orb');
   const fadeOverlay = document.getElementById('fade-overlay');
   const dialogBox = document.getElementById('dialog-box');
+
+  // Background Music Audio Setup
+  const bgm = new Audio('bassline.mp3');
+  bgm.loop = true;
 
   let currentRoom = 1;
   let isTransitioning = false;
@@ -171,6 +56,19 @@
   function loadRoom(roomNum) {
     currentRoom = roomNum;
     const roomData = rooms[roomNum];
+
+    // Room 2 Music Management
+    if (roomNum === 2) {
+      if (bgm.paused) {
+        bgm.play().catch(() => {
+          // Handle autoplay restrictions if user hasn't interacted with document yet
+          window.addEventListener('keydown', () => { bgm.play(); }, { once: true });
+        });
+      }
+    } else {
+      bgm.pause();
+      bgm.currentTime = 0; // Reset track position when leaving Room 2
+    }
 
     for (let r = 1; r <= 8; r++) {
       for (let c = 0; c < 12; c++) {
@@ -246,7 +144,6 @@
       }
     }
 
-    // Orb Collision (Blocks F4, F5, G4, G5 area when present)
     if (rooms[currentRoom].hasOrb) {
       const orbBox = { left: 250, right: 350, top: 150, bottom: 250 };
       if (playerBox.right > orbBox.left && playerBox.left < orbBox.right &&
@@ -271,7 +168,7 @@
     const door = rooms[currentRoom].doors[currentTile];
     if (door) {
       isTransitioning = true;
-      fadeOverlay.style.opacity = '1'; // Fade to black
+      fadeOverlay.style.opacity = '1';
 
       setTimeout(() => {
         loadRoom(door.targetRoom);
@@ -281,7 +178,7 @@
         player.style.top = posY + 'px';
 
         setTimeout(() => {
-          fadeOverlay.style.opacity = '0'; // Fade back in
+          fadeOverlay.style.opacity = '0';
           isTransitioning = false;
         }, 150);
       }, 300);
@@ -340,6 +237,3 @@
 
   requestAnimationFrame(gameLoop);
 </script>
-
-</body>
-</html>
