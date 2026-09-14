@@ -1,3 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jumby - Grid World</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0b1a0d;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: monospace;
+    }
+
+    #arcade-logo {
+      width: 1120px;
+      height: auto;
+      margin-top: 10px;
+      margin-bottom: 20px;
+      image-rendering: pixelated;
+    }
+
+    #room {
+      width: 600px;
+      height: 400px;
+      position: relative;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: repeat(12, 50px);
+      grid-template-rows: repeat(8, 50px);
+      transform: scale(1.5);
+      transform-origin: top center;
+    }
+
+    #fade-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: black;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease-in-out;
+      z-index: 100;
+    }
+
+    .tile {
+      width: 50px;
+      height: 50px;
+      background-size: cover;
+      image-rendering: pixelated;
+    }
+
+    #player {
+      width: 48px;
+      height: 80px;
+      position: absolute;
+      z-index: 10;
+    }
+
+    #player img {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: none;
+      image-rendering: pixelated;
+      object-fit: contain;
+    }
+
+    #orb {
+      width: 100px;
+      height: 100px;
+      position: absolute;
+      left: 250px;
+      top: 150px;
+      z-index: 5;
+      background-size: contain;
+      background-repeat: no-repeat;
+      image-rendering: pixelated;
+      display: none;
+    }
+
+    #dialog-box {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.85);
+      color: white;
+      padding: 10px 15px;
+      border: 2px solid #fff;
+      font-size: 14px;
+      display: none;
+      z-index: 20;
+    }
+  </style>
+</head>
+<body>
+
+<img id="arcade-logo" src="logo.png" alt="JUMBY">
+
+<div id="room">
+  <div id="fade-overlay"></div>
+  <div id="orb"></div>
+  <div id="player"></div>
+  <div id="dialog-box"></div>
+</div>
+
 <script>
   const TILE_SIZE = 50;
   const COLS = ['A','B','C','D','E','F','G','H','I','J','K','L'];
@@ -8,14 +125,12 @@
   const fadeOverlay = document.getElementById('fade-overlay');
   const dialogBox = document.getElementById('dialog-box');
 
-  // Background Music Audio Setup
   const bgm = new Audio('bassline.mp3');
   bgm.loop = true;
 
   let currentRoom = 1;
   let isTransitioning = false;
 
-  // Define Rooms
   const rooms = {
     1: {
       walls: ['A1','B1','C1','D1','E1','F1','G1','H1','I1','J1','K1','L1',
@@ -40,7 +155,6 @@
 
   const gridMap = {};
 
-  // Build Grid Tiles
   for (let r = 1; r <= 8; r++) {
     for (let c = 0; c < 12; c++) {
       const tileName = `${COLS[c]}${r}`;
@@ -57,17 +171,15 @@
     currentRoom = roomNum;
     const roomData = rooms[roomNum];
 
-    // Room 2 Music Management
     if (roomNum === 2) {
       if (bgm.paused) {
         bgm.play().catch(() => {
-          // Handle autoplay restrictions if user hasn't interacted with document yet
           window.addEventListener('keydown', () => { bgm.play(); }, { once: true });
         });
       }
     } else {
       bgm.pause();
-      bgm.currentTime = 0; // Reset track position when leaving Room 2
+      bgm.currentTime = 0;
     }
 
     for (let r = 1; r <= 8; r++) {
@@ -91,7 +203,6 @@
     orb.style.display = roomData.hasOrb ? 'block' : 'none';
   }
 
-  // Animated Sprites Initialization
   const animations = {
     idle_down: ['idle_1.png', 'idle_2.png'],
     idle_up: ['backidle_1.png', 'backidle_2.png'],
@@ -130,7 +241,6 @@
   window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; });
   window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 
-  // Collision Checking
   function isColliding(newX, newY) {
     const playerBox = { left: newX + 4, right: newX + 44, top: newY + 40, bottom: newY + 80 };
 
@@ -155,7 +265,6 @@
     return false;
   }
 
-  // Room Transition Trigger
   function checkDoorTriggers() {
     if (isTransitioning) return;
 
@@ -185,11 +294,9 @@
     }
   }
 
-  // Orb Animation
   const orbFrames = ['orb1.png', 'orb2.png'];
   let orbFrameIndex = 0;
 
-  // Initialize Room 1
   loadRoom(1);
 
   function gameLoop() {
@@ -213,7 +320,6 @@
       player.style.left = posX + 'px';
       player.style.top = posY + 'px';
 
-      // Sprite Animation
       animTimer++;
       const animKey = currentlyMoving ? currentDir : `idle_${lastDir}`;
       const rate = currentlyMoving ? 8 : 20;
@@ -223,7 +329,6 @@
       }
       showFrame(animKey, frameIndex);
 
-      // Orb Animation Loop
       if (animTimer % 25 === 0) {
         orbFrameIndex = (orbFrameIndex + 1) % orbFrames.length;
         orb.style.backgroundImage = `url('${orbFrames[orbFrameIndex]}')`;
@@ -237,3 +342,6 @@
 
   requestAnimationFrame(gameLoop);
 </script>
+
+</body>
+</html>
