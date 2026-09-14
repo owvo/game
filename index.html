@@ -18,7 +18,6 @@
       font-family: monospace;
     }
 
-    /* Logo is made 4x larger (1120px) and pushed up to top of screen */
     #arcade-logo {
       width: 1120px;
       height: auto;
@@ -27,7 +26,6 @@
       image-rendering: pixelated;
     }
 
-    /* Room scaled 1.5x larger */
     #room {
       width: 600px;
       height: 400px;
@@ -51,10 +49,19 @@
       width: 48px;
       height: 80px;
       position: absolute;
-      image-rendering: pixelated;
-      background-size: contain;
-      background-repeat: no-repeat;
       z-index: 10;
+    }
+
+    /* Zero-flicker frame rendering */
+    #player img {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      display: none;
+      image-rendering: pixelated;
+      object-fit: contain;
     }
 
     #dialog-box {
@@ -94,7 +101,7 @@
     'H5': { texture: 'chest.png', solid: true, message: "You opened the chest!" }
   };
 
-  // Generate Tile Map
+  // Generate Map
   const gridMap = {};
   for (let r = 1; r <= 8; r++) {
     for (let c = 0; c < 12; c++) {
@@ -111,17 +118,42 @@
     }
   }
 
-  // Preload Sprites
+  // Animation sets (includes new backidle frames)
   const animations = {
-    idle: ['idle_1.png', 'idle_2.png'],
+    idle_down: ['idle_1.png', 'idle_2.png'],
+    idle_up: ['backidle_1.png', 'backidle_2.png'],
+    idle_left: ['idle_1.png', 'idle_2.png'],
+    idle_right: ['idle_1.png', 'idle_2.png'],
     down: ['front_1.png', 'front_2.png', 'front_3.png', 'front_4.png'],
     up: ['back_1.png', 'back_2.png', 'back_3.png', 'back_4.png'],
     left: ['left_1.png', 'left_2.png', 'left_3.png', 'left_4.png'],
     right: ['right_1.png', 'right_2.png', 'right_3.png', 'right_4.png']
   };
 
+  // Mount images inside DOM to prevent flicker
+  const frameElements = {};
+  Object.entries(animations).forEach(([key, srcArray]) => {
+    frameElements[key] = srcArray.map((src) => {
+      const img = document.createElement('img');
+      img.src = src;
+      player.appendChild(img);
+      return img;
+    });
+  });
+
+  let activeImgElement = null;
+
+  function showFrame(animKey, index) {
+    if (activeImgElement) activeImgElement.style.display = 'none';
+    const targetElement = frameElements[animKey][index];
+    if (targetElement) {
+      targetElement.style.display = 'block';
+      activeImgElement = targetElement;
+    }
+  }
+
   let posX = 250, posY = 150, speed = 3;
-  let frameIndex = 0, currentDir = 'down', isMoving = false, animTimer = 0;
+  let frameIndex = 0, lastDir = 'down', currentDir = 'down', isMoving = false, animTimer = 0;
   const keys = {};
 
   window.addEventListener('keydown', (e) => {
@@ -131,7 +163,6 @@
 
   window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 
-  // Collision Detection
   function isColliding(newX, newY) {
     const playerBox = { left: newX + 4, right: newX + 44, top: newY + 40, bottom: newY + 80 };
 
@@ -147,15 +178,14 @@
     return false;
   }
 
-  // Interact Action (E key)
   function interact() {
     let checkX = posX + 24;
     let checkY = posY + 60;
 
-    if (currentDir === 'up') checkY -= 30;
-    if (currentDir === 'down') checkY += 30;
-    if (currentDir === 'left') checkX -= 30;
-    if (currentDir === 'right') checkX += 30;
+    if (lastDir === 'up') checkY -= 30;
+    if (lastDir === 'down') checkY += 30;
+    if (lastDir === 'left') checkX -= 30;
+    if (lastDir === 'right') checkX += 30;
 
     const colIndex = Math.floor(checkX / TILE_SIZE);
     const rowIndex = Math.floor(checkY / TILE_SIZE) + 1;
@@ -171,11 +201,13 @@
   function gameLoop() {
     let dx = 0, dy = 0;
 
-    if (keys['w'] || keys['arrowup']) { dy -= speed; currentDir = 'up'; }
-    else if (keys['s'] || keys['arrowdown']) { dy += speed; currentDir = 'down'; }
+    if (keys['w'] || keys['arrowup']) { dy -= speed; currentDir = 'up'; lastDir = 'up'; }
+    else if (keys['s'] || keys['arrowdown']) { dy += speed; currentDir = 'down'; lastDir = 'down'; }
     
-    if (keys['a'] || keys['arrowleft']) { dx -= speed; currentDir = 'left'; }
-    else if (keys['d'] || keys['arrowright']) { dx += speed; currentDir = 'right'; }
+    if (keys['a'] || keys['arrowleft']) { dx -= speed; currentDir = 'left'; lastDir = 'left'; }
+    else if (keys['d'] || keys['arrowright']) { dx += speed; currentDir = 'right'; lastDir = 'right'; }
+
+    const currentlyMoving = dx !== 0 || dy !== 0;
 
     const nextX = Math.max(0, Math.min(room.clientWidth - 48, posX + dx));
     const nextY = Math.max(0, Math.min(room.clientHeight - 80, posY + dy));
@@ -186,16 +218,20 @@
     player.style.left = posX + 'px';
     player.style.top = posY + 'px';
 
-    // Animation Switcher
+    // Animation Logic
     animTimer++;
-    const currentlyMoving = dx !== 0 || dy !== 0;
-    const activeAnim = currentlyMoving ? animations[currentDir] : animations.idle;
+    const animKey = currentlyMoving ? currentDir : `idle_${lastDir}`;
     const rate = currentlyMoving ? 8 : 20;
 
     if (animTimer % rate === 0) {
-      frameIndex = (frameIndex + 1) % activeAnim.length;
+      frameIndex = (frameIndex + 1) % animations[animKey].length;
     }
-    player.style.backgroundImage = `url('${activeAnim[frameIndex]}')`;
+
+    if (frameIndex >= animations[animKey].length) {
+      frameIndex = 0;
+    }
+
+    showFrame(animKey, frameIndex);
 
     requestAnimationFrame(gameLoop);
   }
