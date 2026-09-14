@@ -46,18 +46,25 @@
   const player = document.getElementById('player');
   const room = document.getElementById('room');
 
-  // Sprite animation frames setup
-  const frames = [
+  // Sprite animation setups
+  const walkFrames = [
     'front_1.png',
     'front_2.png',
     'front_3.png',
     'front_4.png'
   ];
 
+  const idleFrames = [
+    'idle_1.png',
+    'idle_2.png'
+  ];
+
   let posX = 276;
   let posY = 160;
   const speed = 3;
-  let frameIndex = 0;
+  
+  let walkFrameIndex = 0;
+  let idleFrameIndex = 0;
   let isMoving = false;
   let animTimer = 0;
 
@@ -80,7 +87,15 @@
     if (keys['a'] || keys['arrowleft']) dx -= speed;
     if (keys['d'] || keys['arrowright']) dx += speed;
 
-    isMoving = dx !== 0 || dy !== 0;
+    const currentlyMoving = dx !== 0 || dy !== 0;
+
+    // Reset frame indices if movement state toggles
+    if (currentlyMoving !== isMoving) {
+      isMoving = currentlyMoving;
+      walkFrameIndex = 0;
+      idleFrameIndex = 0;
+      animTimer = 0;
+    }
 
     // Movement boundaries
     posX = Math.max(0, Math.min(room.clientWidth - 48, posX + dx));
@@ -89,17 +104,20 @@
     player.style.left = posX + 'px';
     player.style.top = posY + 'px';
 
-    // Sprite Animation Logic
-    if (isMoving) {
-      animTimer++;
-      if (animTimer % 8 === 0) { // Adjust speed of animation here
-        frameIndex = (frameIndex + 1) % frames.length;
-      }
-    } else {
-      frameIndex = 0; // Default idle frame
-    }
+    // Animation Controller
+    animTimer++;
 
-    player.style.backgroundImage = `url('${frames[frameIndex]}')`;
+    if (isMoving) {
+      if (animTimer % 8 === 0) { // Walk cycle speed
+        walkFrameIndex = (walkFrameIndex + 1) % walkFrames.length;
+      }
+      player.style.backgroundImage = `url('${walkFrames[walkFrameIndex]}')`;
+    } else {
+      if (animTimer % 20 === 0) { // Slower idle bounce speed
+        idleFrameIndex = (idleFrameIndex + 1) % idleFrames.length;
+      }
+      player.style.backgroundImage = `url('${idleFrames[idleFrameIndex]}')`;
+    }
 
     requestAnimationFrame(gameLoop);
   }
