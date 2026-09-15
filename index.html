@@ -73,18 +73,18 @@
       transform: scale(1.15);
     }
 
-    /* Title Screen Menu Buttons Row - Bigger and Farther Apart */
+    /* Title Screen Menu Buttons Row */
     #menu-buttons-row {
       display: flex;
       flex-direction: row;
       justify-content: center;
       align-items: center;
-      gap: 70px; /* Farther apart */
+      gap: 70px;
       z-index: 560;
     }
 
     .menu-btn {
-      height: 70px; /* Bigger default size */
+      height: 70px;
       width: auto;
       image-rendering: pixelated;
       cursor: pointer;
@@ -326,7 +326,7 @@
       border-radius: 3px;
     }
 
-    /* HUD Hearts: Raised higher and slightly bigger */
+    /* HUD Elements */
     #hud-container {
       margin-top: 195px;
       display: flex;
@@ -350,16 +350,20 @@
       filter: grayscale(100%) opacity(0.35);
     }
 
-    .heart.flicker {
-      animation: heartFlicker 0.4s ease-in-out;
-    }
-
-    @keyframes heartFlicker {
-      0% { filter: grayscale(100%) opacity(0.35); }
-      25% { filter: grayscale(0%) opacity(1); }
-      50% { filter: grayscale(100%) opacity(0.35); }
-      75% { filter: grayscale(0%) opacity(1); }
-      100% { filter: grayscale(0%) opacity(1); }
+    /* Top Left Key Inventory Icon */
+    #hud-key {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      width: 40px;
+      height: 40px;
+      background-image: url('key.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      image-rendering: pixelated;
+      z-index: 60;
+      display: none;
+      filter: drop-shadow(0px 0px 4px rgba(255, 255, 255, 0.8));
     }
 
     /* Version watermark in bottom right */
@@ -399,6 +403,7 @@
 <div id="player"></div>
 
 <div id="room">
+  <div id="hud-key"></div>
   <div id="fade-overlay"></div>
   
   <div id="game-over-screen">
@@ -438,6 +443,7 @@
   const player = document.getElementById('player');
   const orb = document.getElementById('orb');
   const keyItem = document.getElementById('key-item');
+  const hudKey = document.getElementById('hud-key');
   const fadeOverlay = document.getElementById('fade-overlay');
   const dialogBox = document.getElementById('dialog-box');
   const dialogText = document.getElementById('dialog-text');
@@ -557,7 +563,6 @@
 
   rightBtnImg.addEventListener('click', nextHue);
 
-  // Click on Jumby on the title screen to shift hue
   player.addEventListener('click', () => {
     if (!gameStarted) {
       nextHue();
@@ -627,6 +632,10 @@
     }
   }
 
+  function updateKeyUI() {
+    hudKey.style.display = hasKey ? 'block' : 'none';
+  }
+
   function triggerGameOver() {
     isGameOver = true;
     bgm.pause();
@@ -667,6 +676,7 @@
     keyDropped = false;
     keyPickedUp = false;
     room3Unlocked = false;
+    updateKeyUI();
 
     gameOverScreen.style.opacity = '0';
     setTimeout(() => {
@@ -1026,7 +1036,7 @@
   }
 
   function checkInteractables() {
-    // Clear all interact highlights
+    // Clear highlights
     orb.classList.remove('interact-highlight');
     keyItem.classList.remove('interact-highlight');
     gridMap['F8'].element.classList.remove('interact-highlight');
@@ -1045,12 +1055,18 @@
       }
     }
 
-    // Check Key (Room 3)
+    // Automatic Key Pickup Check (Room 3)
     if (currentRoom === 3 && keyDropped && !keyPickedUp) {
-      const keyBox = { left: keyX - 20, right: keyX + 52, top: keyY - 20, bottom: keyY + 52 };
+      const keyBox = { left: keyX - 10, right: keyX + 42, top: keyY - 10, bottom: keyY + 42 };
       if (playerBox.right > keyBox.left && playerBox.left < keyBox.right &&
           playerBox.bottom > keyBox.top && playerBox.top < keyBox.bottom) {
-        keyItem.classList.add('interact-highlight');
+        keyPickedUp = true;
+        hasKey = true;
+        keyItem.style.display = 'none';
+        updateKeyUI();
+        dialogText.innerText = "Picked up the key!";
+        dialogBox.style.display = 'block';
+        setTimeout(() => { dialogBox.style.display = 'none'; }, 2000);
       }
     }
 
@@ -1078,26 +1094,14 @@
       }
     }
 
-    if (currentRoom === 3 && keyDropped && !keyPickedUp) {
-      const keyBox = { left: keyX - 20, right: keyX + 52, top: keyY - 20, bottom: keyY + 52 };
-      if (playerBox.right > keyBox.left && playerBox.left < keyBox.right &&
-          playerBox.bottom > keyBox.top && playerBox.top < keyBox.bottom) {
-        keyPickedUp = true;
-        hasKey = true;
-        keyItem.style.display = 'none';
-        dialogText.innerText = "Picked up the key!";
-        dialogBox.style.display = 'block';
-        setTimeout(() => { dialogBox.style.display = 'none'; }, 2000);
-        return;
-      }
-    }
-
     if (currentRoom === 3 && !room3Unlocked) {
       const doorArea = { left: 230, right: 370, top: 290, bottom: 400 };
       if (playerBox.right > doorArea.left && playerBox.left < doorArea.right &&
           playerBox.bottom > doorArea.top && playerBox.top < doorArea.bottom) {
         if (hasKey) {
           room3Unlocked = true;
+          hasKey = false; // Consume key when opening
+          updateKeyUI();
           rooms[3].doors['F8'].locked = false;
           rooms[3].doors['G8'].locked = false;
           gridMap['F8'].element.style.backgroundImage = "url('door.png')";
@@ -1222,7 +1226,7 @@
 
             if (star.hp <= 0) {
               star.alive = false;
-              playStarDeathSfx(); // Plays stardeath.mp3 when star dies
+              playStarDeathSfx();
               star.element.style.opacity = '0';
               setTimeout(() => { star.element.style.display = 'none'; }, 600);
 
