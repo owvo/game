@@ -8,7 +8,7 @@
     body {
       margin: 0;
       padding: 0;
-      background-color: #000000;
+      background-color: #3b7075;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
@@ -16,6 +16,7 @@
       min-height: 100vh;
       overflow: hidden;
       font-family: monospace;
+      transition: background-color 1.2s ease-in-out;
     }
 
     #arcade-logo {
@@ -492,19 +493,21 @@
       margin-top: 15px;
     }
 
-    /* HUD Elements */
+    /* HUD Elements (Top Right of Map) */
     #hud-container {
-      margin-top: 15px;
+      position: absolute;
+      top: 10px;
+      right: 10px;
       display: flex;
-      gap: 14px;
-      z-index: 50;
+      gap: 10px;
+      z-index: 60;
       opacity: 0;
       transition: opacity 1.2s ease-in-out;
     }
 
     .heart {
-      width: 48px;
-      height: 48px;
+      width: 32px;
+      height: 32px;
       background-image: url('heart.png');
       background-size: contain;
       background-repeat: no-repeat;
@@ -567,6 +570,12 @@
 <div id="player"></div>
 
 <div id="map-viewport">
+  <div id="hud-container">
+    <div class="heart" id="heart-0"></div>
+    <div class="heart" id="heart-1"></div>
+    <div class="heart" id="heart-2"></div>
+  </div>
+
   <div id="room">
     <div id="hud-key"></div>
     <div id="fade-overlay"></div>
@@ -616,12 +625,6 @@
       </div>
     </div>
   </div>
-</div>
-
-<div id="hud-container">
-  <div class="heart" id="heart-0"></div>
-  <div class="heart" id="heart-1"></div>
-  <div class="heart" id="heart-2"></div>
 </div>
 
 <div id="version-tag">JUMBY_VER_67</div>
@@ -1003,17 +1006,29 @@
     createStar(4, randomX, randomY);
   }
 
+  const roomBgColors = {
+    1: '#3b7075',
+    2: '#000000',
+    3: '#000000',
+    4: '#000000',
+    5: '#000000'
+  };
+
   const rooms = {
     1: {
-      walls: ['A1','B1','C1','D1','E1','F1','G1','H1','I1','J1','K1','L1',
-              'A2','A3','A4','A5','A6','A7',
-              'L2','L3','L4','L5','L6','L7'],
+      walls: [
+        'A1','B1','C1','D1','E1','F1','G1','H1','I1','J1','K1','L1',
+        'A2','A3','A4','A5','A6','A7','A8',
+        'L2','L3','L4','L5','L6','L7','L8'
+      ],
+      carpets: ['F4','F5','F6','F7','G4','G5','G6','G7'],
       doors: {
         'F8': { targetRoom: 2, spawnX: 276, spawnY: 60 },
         'G8': { targetRoom: 2, spawnX: 276, spawnY: 60 }
       },
       hasOrb: false,
-      computerTile: 'B5'
+      computerTile: 'B5',
+      wallTexture: 'room1wall.png'
     },
     2: {
       walls: ['A1','B1','C1','D1','E1','H1','I1','J1','K1','L1',
@@ -1025,7 +1040,8 @@
         'F8': { targetRoom: 3, spawnX: 276, spawnY: 60 },
         'G8': { targetRoom: 3, spawnX: 276, spawnY: 60 }
       },
-      hasOrb: true
+      hasOrb: true,
+      wallTexture: 'wall.png'
     },
     3: {
       walls: ['A1','B1','C1','D1','E1','H1','I1','J1','K1','L1',
@@ -1037,7 +1053,8 @@
         'F8': { targetRoom: 4, spawnX: 276, spawnY: 60, locked: true },
         'G8': { targetRoom: 4, spawnX: 276, spawnY: 60, locked: true }
       },
-      hasOrb: false
+      hasOrb: false,
+      wallTexture: 'wall.png'
     },
     4: {
       walls: ['A1','B1','C1','D1','E1','H1','I1','J1','K1','L1',
@@ -1049,7 +1066,8 @@
         'F8': { targetRoom: 5, spawnX: 276, spawnY: 60 },
         'G8': { targetRoom: 5, spawnX: 276, spawnY: 60 }
       },
-      hasOrb: false
+      hasOrb: false,
+      wallTexture: 'wall.png'
     },
     5: {
       walls: ['A1','B1','C1','D1','E1','H1','I1','J1','K1','L1',
@@ -1060,7 +1078,8 @@
         'F1': { targetRoom: 4, spawnX: 276, spawnY: 260, isTop: true },
         'G1': { targetRoom: 4, spawnX: 276, spawnY: 260, isTop: true }
       },
-      hasOrb: false
+      hasOrb: false,
+      wallTexture: 'wall.png'
     }
   };
 
@@ -1082,6 +1101,8 @@
     currentRoom = roomNum;
     const roomData = rooms[roomNum];
 
+    document.body.style.backgroundColor = roomBgColors[roomNum] || '#000000';
+
     if (roomNum === 2) {
       if (bgm.paused) {
         bgm.play().catch(() => {
@@ -1102,8 +1123,11 @@
         if (roomData.computerTile === tileName) {
           tile.element.style.backgroundImage = "url('computer.png')";
           tile.solid = true;
+        } else if (roomData.carpets && roomData.carpets.includes(tileName)) {
+          tile.element.style.backgroundImage = "url('carpet.png')";
+          tile.solid = false;
         } else if (roomData.walls.includes(tileName)) {
-          tile.element.style.backgroundImage = "url('wall.png')";
+          tile.element.style.backgroundImage = `url('${roomData.wallTexture}')`;
           tile.solid = true;
         } else if (roomData.doors[tileName]) {
           const doorData = roomData.doors[tileName];
