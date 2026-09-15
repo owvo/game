@@ -24,7 +24,7 @@
       margin-top: 10px;
       margin-bottom: 20px;
       image-rendering: pixelated;
-      z-index: 600; /* Keeps logo visible on title screen */
+      z-index: 600;
       position: relative;
     }
 
@@ -41,7 +41,7 @@
       flex-direction: row;
       justify-content: center;
       align-items: center;
-      gap: 40px;
+      gap: 120px;
       transition: opacity 1.2s ease-in-out;
     }
 
@@ -68,7 +68,7 @@
       grid-template-rows: repeat(8, 50px);
       transform: scale(1.5);
       transform-origin: top center;
-      opacity: 0; /* Fades in alongside Jumby transition */
+      opacity: 0;
       transition: opacity 1.2s ease-in-out;
     }
 
@@ -126,15 +126,15 @@
       transform: rotate(180deg);
     }
 
+    /* Standalone Jumby Player Container */
     #player {
       width: 48px;
       height: 80px;
-      position: absolute;
-      z-index: 550; /* Above title overlay during entry spin animation */
+      position: fixed;
+      z-index: 550; /* Always renders on top of start screen */
       transform-origin: center center;
     }
 
-    /* Fixed visibility so Jumby is immediately seen on load */
     #player img {
       width: 100%;
       height: 100%;
@@ -166,10 +166,10 @@
         transform: scale(4) rotate(0deg);
       }
       25% {
-        transform: scale(4.8) rotate(0deg); /* Playful bounce */
+        transform: scale(4.8) rotate(0deg);
       }
       100% {
-        transform: scale(1) rotate(360deg); /* Spin & shrink down to game size */
+        transform: scale(1) rotate(360deg);
       }
     }
 
@@ -301,6 +301,9 @@
   <img id="play-btn-img" src="play.png" alt="PLAY">
 </div>
 
+<!-- Standalone Player Element (Renders over Title Screen on Load) -->
+<div id="player"></div>
+
 <div id="room">
   <div id="fade-overlay"></div>
   
@@ -314,7 +317,6 @@
   </div>
 
   <div id="orb"></div>
-  <div id="player"></div>
   <div id="dialog-box">
     <div id="dialog-text"></div>
     <div id="dialog-options" class="dialog-options" style="display: none;">
@@ -396,41 +398,56 @@
   let playerHp = 5;
   let isInvincible = false;
 
-  // Set Jumby on right-center side of screen during Title Screen
+  // Actual Game Coordinates
   let posX = 276, posY = 150, speed = 3.75;
-  
-  // Position Jumby in middle-right of the title viewport before start
-  player.style.left = '60vw';
-  player.style.top = '45vh';
+
+  // Render Giant Jumby on Title Screen immediately
+  player.style.left = '62vw';
+  player.style.top = '48vh';
   player.style.transform = 'scale(4)';
+
+  function getCanvasOffset() {
+    const rect = roomDiv.getBoundingClientRect();
+    return {
+      left: rect.left,
+      top: rect.top
+    };
+  }
+
+  function updatePlayerPosition() {
+    if (!gameStarted) return;
+    const offset = getCanvasOffset();
+    // Multiply by 1.5 because #room uses CSS transform: scale(1.5)
+    player.style.left = (offset.left + (posX * 1.5)) + 'px';
+    player.style.top = (offset.top + (posY * 1.5)) + 'px';
+  }
 
   function startGame() {
     if (gameStarted) return;
     gameStarted = true;
 
-    // Play Jingle audio on start
     playJingleSfx();
 
-    // Reset player anchor position to actual game canvas starting grid
-    player.style.left = posX + 'px';
-    player.style.top = posY + 'px';
+    // Smoothly transition Jumby to room grid target position
+    const offset = getCanvasOffset();
+    player.style.transition = 'left 1.2s cubic-bezier(0.4, 0, 0.2, 1), top 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
+    player.style.left = (offset.left + (posX * 1.5)) + 'px';
+    player.style.top = (offset.top + (posY * 1.5)) + 'px';
 
-    // Fade UI play button and start overlay
     playBtnImg.style.opacity = '0';
     startScreen.style.opacity = '0';
     
-    // Fade in game world & HUD synchronously with Jumby's animation
     roomDiv.style.opacity = '1';
     hudContainer.style.opacity = '1';
 
-    // Bounce -> 360 Spin -> Shrink animation
     player.classList.add('start-animation');
 
     setTimeout(() => {
       startScreen.style.display = 'none';
       player.classList.remove('start-animation');
+      player.style.transition = 'none';
       player.style.transform = 'scale(1)';
-      player.style.zIndex = '10'; // Return to normal layer depth inside room
+      player.style.transformOrigin = 'top left';
     }, 1200);
   }
 
@@ -447,7 +464,6 @@
     }
   }
 
-  // Auto Heal Mechanics
   setInterval(() => {
     if (playerHp < 5 && playerHp > 0 && !isGameOver) {
       const healIndex = playerHp;
@@ -463,7 +479,7 @@
     isGameOver = true;
     bgm.pause();
     walkSfx.pause();
-    playLoseSfx(); // Trigger game over sound
+    playLoseSfx();
 
     gameOverOption = 'yes';
     updateGameOverUI();
@@ -484,8 +500,7 @@
 
     posX = 276;
     posY = 150;
-    player.style.left = posX + 'px';
-    player.style.top = posY + 'px';
+    updatePlayerPosition();
     loadRoom(1);
   }
 
@@ -508,7 +523,6 @@
     }, 1000);
   }
 
-  // Star entities setup
   const starEntities = [];
 
   function createStar(roomNum, x, y) {
@@ -695,7 +709,7 @@
     }
   }
 
-  // Force initial idle display immediately upon landing on page
+  // Instantly render Jumby idle sprite on initial page load
   showFrame('idle_down', 0);
 
   let frameIndex = 0, lastDir = 'down', currentDir = 'down', animTimer = 0;
@@ -708,7 +722,6 @@
     const k = e.key.toLowerCase();
     keys[k] = true;
 
-    // Start game via Enter, E, or Spacebar on title screen
     if (!gameStarted) {
       if (k === ' ' || k === 'enter' || k === 'e') {
         startGame();
@@ -1027,8 +1040,7 @@
         loadRoom(door.targetRoom);
         posX = door.spawnX;
         posY = door.spawnY;
-        player.style.left = posX + 'px';
-        player.style.top = posY + 'px';
+        updatePlayerPosition();
 
         setTimeout(() => {
           fadeOverlay.style.opacity = '0';
@@ -1070,8 +1082,7 @@
       if (!isColliding(nextX, posY)) posX = nextX;
       if (!isColliding(posX, nextY)) posY = nextY;
 
-      player.style.left = posX + 'px';
-      player.style.top = posY + 'px';
+      updatePlayerPosition();
 
       updateStars();
       checkDoorTriggers();
@@ -1079,7 +1090,7 @@
       if (!walkSfx.paused) walkSfx.pause();
     }
 
-    // Sprite Animations (Runs even on title screen for idle effect)
+    // Sprite Animations (Runs continuously to animate Title Screen Idle)
     animTimer++;
     const currentlyMoving = dx !== 0 || dy !== 0;
     const animKey = currentlyMoving ? currentDir : `idle_${lastDir}`;
