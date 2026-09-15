@@ -46,13 +46,13 @@
       transition: opacity 1.2s ease-in-out;
     }
 
-    /* Arrow Buttons Container for Hue Shift */
+    /* Arrow Buttons Container - Expanded width & larger arrow size */
     #hue-controls {
       position: absolute;
       top: 50vh;
       left: 50vw;
       transform: translate(-50%, -50%);
-      width: 480px;
+      width: 680px; /* Pushed arrows further away from Jumby */
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -60,7 +60,7 @@
     }
 
     .arrow-btn {
-      width: 50px;
+      width: 70px; /* Made arrows larger */
       height: auto;
       image-rendering: pixelated;
       cursor: pointer;
@@ -82,7 +82,7 @@
     }
 
     .menu-btn {
-      height: 60px;
+      height: 50px; /* Scaled secondary buttons down to highlight play */
       width: auto;
       image-rendering: pixelated;
       cursor: pointer;
@@ -93,8 +93,9 @@
       transform: scale(1.08);
     }
 
+    /* Play button set to 2x size of tutorial/options buttons (100px vs 50px) */
     #play-btn-img {
-      height: 80px;
+      height: 100px;
     }
 
     /* Room Canvas */
@@ -171,7 +172,7 @@
       width: 48px;
       height: 80px;
       position: fixed;
-      z-index: 550; /* Always renders on top of start screen */
+      z-index: 550;
       transform-origin: center center;
     }
 
@@ -196,7 +197,6 @@
       100% { opacity: 1; }
     }
 
-    /* Bounce, 360 Spin, and Shrink Animation from Scale 6 */
     .start-animation {
       animation: bounceSpinShrink 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
@@ -350,7 +350,7 @@
   </div>
 </div>
 
-<!-- Standalone Player Element (Renders Centered over Title Screen on Load) -->
+<!-- Standalone Player Element -->
 <div id="player"></div>
 
 <div id="room">
@@ -449,7 +449,7 @@
   let playerHp = 5;
   let isInvincible = false;
 
-  // Hue Shift Logic (5 Distinct Color Hues)
+  // Hue Shift Logic
   const hues = [0, 72, 144, 216, 288];
   let currentHueIndex = 0;
 
@@ -468,10 +468,9 @@
     updatePlayerHue();
   });
 
-  // Actual Game Coordinates
+  // Game Coordinates
   let posX = 276, posY = 150, speed = 3.75;
 
-  // Render Extra Large Jumby slightly lower on title screen
   player.style.left = '50vw';
   player.style.top = '50vh';
   player.style.transform = 'translate(-50%, -50%) scale(6)';
@@ -487,7 +486,6 @@
   function updatePlayerPosition() {
     if (!gameStarted) return;
     const offset = getCanvasOffset();
-    // Multiply by 1.5 because #room uses CSS transform: scale(1.5)
     player.style.left = (offset.left + (posX * 1.5)) + 'px';
     player.style.top = (offset.top + (posY * 1.5)) + 'px';
   }
@@ -498,7 +496,6 @@
 
     playJingleSfx();
 
-    // Smoothly transition Jumby to room grid target position
     const offset = getCanvasOffset();
     player.style.transition = 'left 1.2s cubic-bezier(0.4, 0, 0.2, 1), top 1.2s cubic-bezier(0.4, 0, 0.2, 1)';
     player.style.left = (offset.left + (posX * 1.5)) + 'px';
@@ -778,7 +775,6 @@
     }
   }
 
-  // Instantly render Jumby idle sprite on initial page load
   showFrame('idle_down', 0);
 
   let frameIndex = 0, lastDir = 'down', currentDir = 'down', animTimer = 0;
@@ -1165,7 +1161,6 @@
       if (!walkSfx.paused) walkSfx.pause();
     }
 
-    // Sprite Animations (Runs continuously to animate Title Screen Idle)
     animTimer++;
     const currentlyMoving = dx !== 0 || dy !== 0;
     const animKey = currentlyMoving ? currentDir : `idle_${lastDir}`;
