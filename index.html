@@ -38,10 +38,11 @@
       background: #000000;
       z-index: 500;
       display: flex;
-      flex-direction: row;
-      justify-content: center;
+      flex-direction: column;
+      justify-content: flex-end;
       align-items: center;
-      gap: 120px;
+      padding-bottom: 80px;
+      box-sizing: border-box;
       transition: opacity 1.2s ease-in-out;
     }
 
@@ -156,20 +157,20 @@
       100% { opacity: 1; }
     }
 
-    /* Bounce, 360 Spin, and Shrink Animation */
+    /* Bounce, 360 Spin, and Shrink Animation from Scale 6 */
     .start-animation {
       animation: bounceSpinShrink 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     }
 
     @keyframes bounceSpinShrink {
       0% {
-        transform: scale(4) rotate(0deg);
+        transform: translate(-50%, -50%) scale(6) rotate(0deg);
       }
       25% {
-        transform: scale(4.8) rotate(0deg);
+        transform: translate(-50%, -50%) scale(6.8) rotate(0deg);
       }
       100% {
-        transform: scale(1) rotate(360deg);
+        transform: translate(0, 0) scale(1) rotate(360deg);
       }
     }
 
@@ -301,7 +302,7 @@
   <img id="play-btn-img" src="play.png" alt="PLAY">
 </div>
 
-<!-- Standalone Player Element (Renders over Title Screen on Load) -->
+<!-- Standalone Player Element (Renders Centered over Title Screen on Load) -->
 <div id="player"></div>
 
 <div id="room">
@@ -401,10 +402,10 @@
   // Actual Game Coordinates
   let posX = 276, posY = 150, speed = 3.75;
 
-  // Render Giant Jumby on Title Screen immediately
-  player.style.left = '62vw';
-  player.style.top = '48vh';
-  player.style.transform = 'scale(4)';
+  // Render Extra Large Jumby directly in the Screen Center
+  player.style.left = '50vw';
+  player.style.top = '42vh';
+  player.style.transform = 'translate(-50%, -50%) scale(6)';
 
   function getCanvasOffset() {
     const rect = roomDiv.getBoundingClientRect();
