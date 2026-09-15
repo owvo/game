@@ -93,6 +93,26 @@
       display: none;
     }
 
+    /* Star Entity CSS */
+    #star-entity {
+      width: 60px;
+      height: 60px;
+      position: absolute;
+      left: 480px;
+      top: 170px;
+      z-index: 8;
+      background-size: contain;
+      background-repeat: no-repeat;
+      image-rendering: pixelated;
+      display: none;
+      transition: opacity 0.6s ease-out, filter 0.1s ease;
+    }
+
+    /* Red hit overlay filter */
+    #star-entity.hit {
+      filter: drop-shadow(0px 0px 0px red) sepia(1) hue-rotate(-50deg) saturate(1000%);
+    }
+
     .bullet {
       width: 16px;
       height: 16px;
@@ -145,6 +165,7 @@
 <div id="room">
   <div id="fade-overlay"></div>
   <div id="orb"></div>
+  <div id="star-entity"></div>
   <div id="player"></div>
   <div id="dialog-box">
     <div id="dialog-text"></div>
@@ -162,6 +183,7 @@
   const roomDiv = document.getElementById('room');
   const player = document.getElementById('player');
   const orb = document.getElementById('orb');
+  const starEntity = document.getElementById('star-entity');
   const fadeOverlay = document.getElementById('fade-overlay');
   const dialogBox = document.getElementById('dialog-box');
   const dialogText = document.getElementById('dialog-text');
@@ -169,7 +191,7 @@
   const optYes = document.getElementById('opt-yes');
   const optNo = document.getElementById('opt-no');
 
-  // Audio Files Setup
+  // Audio Setup
   const bgm = new Audio('bassline.mp3');
   bgm.loop = true;
 
@@ -181,14 +203,23 @@
     spitSfx.play().catch(() => {});
   }
 
+  function playDamageSfx() {
+    const damageSfx = new Audio('damage.mp3');
+    damageSfx.play().catch(() => {});
+  }
+
   let currentRoom = 1;
   let isTransitioning = false;
   let hasBulletAbility = false;
   let orbAbsorbed = false;
 
+  // Star Entity State
+  let starHp = 4;
+  let starAlive = true;
+
   // Prompt / Dialog State
   let inPrompt = false;
-  let selectedOption = 'yes'; // 'yes' or 'no'
+  let selectedOption = 'yes';
 
   const rooms = {
     1: {
@@ -199,19 +230,32 @@
         'F8': { targetRoom: 2, spawnX: 276, spawnY: 60 },
         'G8': { targetRoom: 2, spawnX: 276, spawnY: 60 }
       },
-      hasOrb: false
+      hasOrb: false,
+      hasStar: false
     },
     2: {
       walls: ['A1','B1','C1','D1','E1','H1','I1','J1','K1','L1',
               'A2','A3','A4','A5','A6','A7','A8',
               'L2','L3','L4','L5','L6','L7','L8'],
       doors: {
-        'F1': { targetRoom: 1, spawnX: 276, spawnY: 260, isTop: true },
-        'G1': { targetRoom: 1, spawnX: 276, spawnY: 260, isTop: true },
+        'F1': { targetRoom: 3, spawnX: 276, spawnY: 260, isTop: true },
+        'G1': { targetRoom: 3, spawnX: 276, spawnY: 260, isTop: true },
         'F8': { targetRoom: 1, spawnX: 276, spawnY: 260 },
         'G8': { targetRoom: 1, spawnX: 276, spawnY: 260 }
       },
-      hasOrb: true
+      hasOrb: true,
+      hasStar: false
+    },
+    3: {
+      walls: ['A1','B1','C1','D1','E1','F1','G1','H1','I1','J1','K1','L1',
+              'A2','A3','A4','A5','A6','A7','A8',
+              'L2','L3','L4','L5','L6','L7','L8'],
+      doors: {
+        'F8': { targetRoom: 2, spawnX: 276, spawnY: 60 },
+        'G8': { targetRoom: 2, spawnX: 276, spawnY: 60 }
+      },
+      hasOrb: false,
+      hasStar: true
     }
   };
 
@@ -267,6 +311,7 @@
     }
 
     orb.style.display = (roomData.hasOrb && !orbAbsorbed) ? 'block' : 'none';
+    starEntity.style.display = (roomData.hasStar && starAlive) ? 'block' : 'none';
   }
 
   const animations = {
@@ -300,12 +345,10 @@
     }
   }
 
-  // Increased speed by 1.25x (3 * 1.25 = 3.75)
   let posX = 276, posY = 150, speed = 3.75;
   let frameIndex = 0, lastDir = 'down', currentDir = 'down', animTimer = 0;
   const keys = {};
 
-  // Active Bullets Tracking
   const activeBullets = [];
 
   window.addEventListener('keydown', (e) => {
@@ -409,10 +452,36 @@
   }
 
   function updateBullets() {
+    const starBox = { left: 480, right: 540, top: 170, bottom: 230 };
+
     for (let i = activeBullets.length - 1; i >= 0; i--) {
       const b = activeBullets[i];
       b.x += b.vx;
       b.y += b.vy;
+
+      // Bullet Hit Detection on Star Entity
+      if (rooms[currentRoom].hasStar && starAlive) {
+        if (b.x + 16 > starBox.left && b.x < starBox.right &&
+            b.y + 16 > starBox.top && b.y < starBox.bottom) {
+          
+          playDamageSfx();
+          starHp--;
+
+          // Flash red
+          starEntity.classList.add('hit');
+          setTimeout(() => { starEntity.classList.remove('hit'); }, 150);
+
+          if (starHp <= 0) {
+            starAlive = false;
+            starEntity.style.opacity = '0';
+            setTimeout(() => { starEntity.style.display = 'none'; }, 600);
+          }
+
+          b.element.remove();
+          activeBullets.splice(i, 1);
+          continue;
+        }
+      }
 
       // Check boundary limits
       if (b.x < 0 || b.x > 584 || b.y < 0 || b.y > 384) {
@@ -443,6 +512,15 @@
       const orbBox = { left: 250, right: 350, top: 150, bottom: 250 };
       if (playerBox.right > orbBox.left && playerBox.left < orbBox.right &&
           playerBox.bottom > orbBox.top && playerBox.top < orbBox.bottom) {
+        return true;
+      }
+    }
+
+    // Star Collision
+    if (rooms[currentRoom].hasStar && starAlive) {
+      const starBox = { left: 480, right: 540, top: 170, bottom: 230 };
+      if (playerBox.right > starBox.left && playerBox.left < starBox.right &&
+          playerBox.bottom > starBox.top && playerBox.top < starBox.bottom) {
         return true;
       }
     }
@@ -479,8 +557,12 @@
     }
   }
 
+  // Animation Loops Setup
   const orbFrames = ['orb1.png', 'orb2.png'];
   let orbFrameIndex = 0;
+
+  const starFrames = ['star1.png', 'star2.png', 'star3.png', 'star4.png'];
+  let starFrameIndex = 0;
 
   loadRoom(1);
 
@@ -496,7 +578,6 @@
 
       const currentlyMoving = dx !== 0 || dy !== 0;
 
-      // Handle Walking SFX Loop
       if (currentlyMoving) {
         if (walkSfx.paused) walkSfx.play().catch(() => {});
       } else {
@@ -526,9 +607,16 @@
 
       showFrame(animKey, frameIndex);
 
+      // Orb Animation Loop
       if (animTimer % 25 === 0 && !orbAbsorbed) {
         orbFrameIndex = (orbFrameIndex + 1) % orbFrames.length;
         orb.style.backgroundImage = `url('${orbFrames[orbFrameIndex]}')`;
+      }
+
+      // Star Animation Loop
+      if (animTimer % 12 === 0 && starAlive) {
+        starFrameIndex = (starFrameIndex + 1) % starFrames.length;
+        starEntity.style.backgroundImage = `url('${starFrames[starFrameIndex]}')`;
       }
 
       checkDoorTriggers();
