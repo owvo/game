@@ -57,7 +57,7 @@
       justify-content: space-between;
       align-items: center;
       z-index: 560;
-      pointer-events: none; /* Let clicks pass through empty space to Jumby */
+      pointer-events: none;
     }
 
     .arrow-btn {
@@ -95,16 +95,24 @@
       transform: scale(1.08);
     }
 
-    /* Play button noticeably larger */
     #play-btn-img {
       height: 140px;
+    }
+
+    /* Container holding the map viewport space */
+    #map-viewport {
+      width: 900px;
+      height: 600px;
+      position: relative;
     }
 
     /* Room Canvas */
     #room {
       width: 600px;
       height: 400px;
-      position: relative;
+      position: absolute;
+      top: 0;
+      left: 150px;
       overflow: hidden;
       display: grid;
       grid-template-columns: repeat(12, 50px);
@@ -205,29 +213,18 @@
     }
 
     @keyframes bounceSpinShrink {
-      0% {
-        transform: translate(-50%, -50%) scale(6) rotate(0deg);
-      }
-      25% {
-        transform: translate(-50%, -50%) scale(6.8) rotate(0deg);
-      }
-      100% {
-        transform: translate(0, 0) scale(1) rotate(360deg);
-      }
+      0% { transform: translate(-50%, -50%) scale(6) rotate(0deg); }
+      25% { transform: translate(-50%, -50%) scale(6.8) rotate(0deg); }
+      100% { transform: translate(0, 0) scale(1) rotate(360deg); }
     }
 
-    /* White outline flashing for interactible elements */
     .interact-highlight {
       animation: flashWhiteOutline 0.8s infinite alternate !important;
     }
 
     @keyframes flashWhiteOutline {
-      0% {
-        filter: drop-shadow(0px 0px 4px rgba(255, 255, 255, 0.4));
-      }
-      100% {
-        filter: drop-shadow(0px 0px 12px rgba(255, 255, 255, 1)) drop-shadow(0px 0px 3px white);
-      }
+      0% { filter: drop-shadow(0px 0px 4px rgba(255, 255, 255, 0.4)); }
+      100% { filter: drop-shadow(0px 0px 12px rgba(255, 255, 255, 1)) drop-shadow(0px 0px 3px white); }
     }
 
     #orb {
@@ -326,9 +323,178 @@
       border-radius: 3px;
     }
 
+    /* Browser Window UI overlay */
+    #fake-browser {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 900px;
+      height: 600px;
+      background: #1e1e1e;
+      border: 3px solid #444;
+      box-sizing: border-box;
+      display: none;
+      flex-direction: column;
+      z-index: 300;
+      font-family: sans-serif;
+    }
+
+    #browser-bar {
+      background: #333;
+      padding: 6px 12px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 2px solid #444;
+    }
+
+    #browser-url {
+      background: #111;
+      color: #00ff66;
+      border: 1px solid #555;
+      padding: 4px 10px;
+      border-radius: 4px;
+      flex-grow: 1;
+      font-family: monospace;
+      font-size: 14px;
+    }
+
+    #browser-close-btn {
+      background: #ff5555;
+      color: white;
+      border: none;
+      padding: 4px 10px;
+      cursor: pointer;
+      font-weight: bold;
+      border-radius: 3px;
+    }
+
+    #browser-content {
+      flex: 1;
+      display: flex;
+      position: relative;
+      background: #0f0f15;
+      color: #fff;
+      overflow: hidden;
+    }
+
+    #chat-sidebar {
+      width: 220px;
+      background: #181822;
+      border-right: 1px solid #2a2a3a;
+      padding: 10px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #chat-sidebar h4 {
+      margin: 0 0 10px 0;
+      font-size: 13px;
+      color: #aaa;
+      text-transform: uppercase;
+    }
+
+    #user-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      overflow-y: auto;
+      flex: 1;
+      font-size: 13px;
+    }
+
+    #user-list li {
+      margin-bottom: 6px;
+      font-weight: bold;
+    }
+
+    #chat-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #chat-messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+
+    .chat-msg {
+      word-break: break-word;
+    }
+
+    .chat-msg .username {
+      font-weight: bold;
+      margin-right: 8px;
+    }
+
+    #chat-input-area {
+      display: flex;
+      padding: 10px;
+      background: #181822;
+      border-top: 1px solid #2a2a3a;
+    }
+
+    #chat-input {
+      flex: 1;
+      background: #0b0b10;
+      border: 1px solid #333;
+      color: white;
+      padding: 8px 12px;
+      font-family: monospace;
+      font-size: 14px;
+      border-radius: 4px;
+      outline: none;
+    }
+
+    #chat-send-btn {
+      margin-left: 8px;
+      background: #4e46e5;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+
+    #banned-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #8b0000;
+      color: white;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+      text-align: center;
+    }
+
+    #banned-screen h1 {
+      font-size: 56px;
+      margin: 0;
+      letter-spacing: 4px;
+    }
+
+    #banned-screen p {
+      font-size: 20px;
+      margin-top: 15px;
+    }
+
     /* HUD Elements */
     #hud-container {
-      margin-top: 195px;
+      margin-top: 15px;
       display: flex;
       gap: 14px;
       z-index: 50;
@@ -350,7 +516,6 @@
       filter: grayscale(100%) opacity(0.35);
     }
 
-    /* Top Left Key Inventory Icon */
     #hud-key {
       position: absolute;
       top: 15px;
@@ -366,7 +531,6 @@
       filter: drop-shadow(0px 0px 4px rgba(255, 255, 255, 0.8));
     }
 
-    /* Version watermark in bottom right */
     #version-tag {
       position: fixed;
       bottom: 12px;
@@ -402,26 +566,54 @@
 <!-- Standalone Player Element -->
 <div id="player"></div>
 
-<div id="room">
-  <div id="hud-key"></div>
-  <div id="fade-overlay"></div>
-  
-  <div id="game-over-screen">
-    <img id="lose-img" src="lose.png" alt="YOU LOSE">
-    <div id="game-over-text">Try Again?</div>
-    <div class="dialog-options">
-      <span id="go-opt-yes" class="option selected">Yes</span>
-      <span id="go-opt-no" class="option">No</span>
+<div id="map-viewport">
+  <div id="room">
+    <div id="hud-key"></div>
+    <div id="fade-overlay"></div>
+    
+    <div id="game-over-screen">
+      <img id="lose-img" src="lose.png" alt="YOU LOSE">
+      <div id="game-over-text">Try Again?</div>
+      <div class="dialog-options">
+        <span id="go-opt-yes" class="option selected">Yes</span>
+        <span id="go-opt-no" class="option">No</span>
+      </div>
+    </div>
+
+    <div id="orb"></div>
+    <div id="key-item"></div>
+    <div id="dialog-box">
+      <div id="dialog-text"></div>
+      <div id="dialog-options" class="dialog-options" style="display: none;">
+        <span id="opt-yes" class="option selected">Yes</span>
+        <span id="opt-no" class="option">No</span>
+      </div>
     </div>
   </div>
 
-  <div id="orb"></div>
-  <div id="key-item"></div>
-  <div id="dialog-box">
-    <div id="dialog-text"></div>
-    <div id="dialog-options" class="dialog-options" style="display: none;">
-      <span id="opt-yes" class="option selected">Yes</span>
-      <span id="opt-no" class="option">No</span>
+  <!-- Fake Browser UI -->
+  <div id="fake-browser">
+    <div id="browser-bar">
+      <span style="color: #aaa; font-weight: bold; font-size: 12px;">🌐 Browser</span>
+      <div id="browser-url">jumby.chat/?jumbying</div>
+      <button id="browser-close-btn">X</button>
+    </div>
+    <div id="browser-content">
+      <div id="chat-sidebar">
+        <h4>Users Online</h4>
+        <ul id="user-list"></ul>
+      </div>
+      <div id="chat-main">
+        <div id="chat-messages"></div>
+        <div id="chat-input-area">
+          <input type="text" id="chat-input" placeholder="Type a message..." autocomplete="off">
+          <button id="chat-send-btn">Send</button>
+        </div>
+      </div>
+      <div id="banned-screen">
+        <h1>BANNED</h1>
+        <p>only blahs allowed</p>
+      </div>
     </div>
   </div>
 </div>
@@ -432,7 +624,6 @@
   <div class="heart" id="heart-2"></div>
 </div>
 
-<!-- Bottom Right Version Tag -->
 <div id="version-tag">JUMBY_VER_67</div>
 
 <script>
@@ -463,6 +654,127 @@
   const goOptYes = document.getElementById('go-opt-yes');
   const goOptNo = document.getElementById('go-opt-no');
 
+  // Chat Browser Elements
+  const fakeBrowser = document.getElementById('fake-browser');
+  const browserCloseBtn = document.getElementById('browser-close-btn');
+  const userListEl = document.getElementById('user-list');
+  const chatMessagesEl = document.getElementById('chat-messages');
+  const chatInput = document.getElementById('chat-input');
+  const chatSendBtn = document.getElementById('chat-send-btn');
+  const bannedScreen = document.getElementById('banned-screen');
+
+  let isBrowserOpen = false;
+  let chatTimer = null;
+
+  const chatUsers = [
+    { name: 'jumby_fan_49', color: '#ff5555' },
+    { name: 'gumby', color: '#55ff55' },
+    { name: 'flimbo', color: '#55ffff' },
+    { name: 'scibry', color: '#ff55ff' },
+    { name: 'sceapy', color: '#ffff55' },
+    { name: 'gib_gab', color: '#ff9900' },
+    { name: 'dacon', color: '#0099ff' },
+    { name: 'Gumball', color: '#ff66cc' },
+    { name: 'Gumbot', color: '#a0a0a0' },
+    { name: 'poopr324', color: '#8b4513' },
+    { name: 'tummy_man21', color: '#33cc33' },
+    { name: 'dibby', color: '#cc66ff' },
+    { name: 'chi', color: '#ff3366' }
+  ];
+
+  function initChatSystem() {
+    userListEl.innerHTML = '';
+    chatUsers.forEach(u => {
+      const li = document.createElement('li');
+      li.innerText = u.name;
+      li.style.color = u.color;
+      userListEl.appendChild(li);
+    });
+  }
+
+  function generateBlahText() {
+    const variations = ['blah', 'BLAH', 'blaaah', 'blah!'];
+    const count = Math.floor(Math.random() * 5) + 1;
+    let res = [];
+    for (let i = 0; i < count; i++) {
+      res.push(variations[Math.floor(Math.random() * variations.length)]);
+    }
+    return res.join(' ');
+  }
+
+  function appendChatMessage(username, color, text) {
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'chat-msg';
+
+    const userSpan = document.createElement('span');
+    userSpan.className = 'username';
+    userSpan.style.color = color;
+    userSpan.innerText = username + ':';
+
+    const textSpan = document.createElement('span');
+    textSpan.innerText = text;
+
+    msgDiv.appendChild(userSpan);
+    msgDiv.appendChild(textSpan);
+    chatMessagesEl.appendChild(msgDiv);
+    chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight;
+  }
+
+  function scheduleNextBotMessage() {
+    if (!isBrowserOpen) return;
+    const delay = Math.floor(Math.random() * 2000) + 2000;
+    chatTimer = setTimeout(() => {
+      if (isBrowserOpen) {
+        const user = chatUsers[Math.floor(Math.random() * chatUsers.length)];
+        appendChatMessage(user.name, user.color, generateBlahText());
+        scheduleNextBotMessage();
+      }
+    }, delay);
+  }
+
+  function handleUserChatMessage() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+
+    chatInput.value = '';
+    appendChatMessage('You', '#ffffff', text);
+
+    const clean = text.toLowerCase().replace(/[^a-z]/g, '');
+    const isOnlyBlah = /^((blah)+)$/.test(clean);
+
+    if (!isOnlyBlah) {
+      setTimeout(() => {
+        bannedScreen.style.display = 'flex';
+      }, 400);
+    }
+  }
+
+  chatSendBtn.addEventListener('click', handleUserChatMessage);
+  chatInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleUserChatMessage();
+  });
+
+  function openBrowser() {
+    isBrowserOpen = true;
+    roomDiv.style.display = 'none';
+    player.style.display = 'none';
+    fakeBrowser.style.display = 'flex';
+    bannedScreen.style.display = 'none';
+    chatMessagesEl.innerHTML = '';
+    initChatSystem();
+    scheduleNextBotMessage();
+  }
+
+  function closeBrowser() {
+    isBrowserOpen = false;
+    clearTimeout(chatTimer);
+    fakeBrowser.style.display = 'none';
+    roomDiv.style.display = 'grid';
+    player.style.display = 'block';
+  }
+
+  browserCloseBtn.addEventListener('click', closeBrowser);
+
   // Audio Tracks
   const bgm = new Audio('bassline.mp3');
   bgm.loop = true;
@@ -470,52 +782,18 @@
   const walkSfx = new Audio('walk.mp3');
   walkSfx.loop = true;
 
-  function playJingleSfx() {
-    const jingleSfx = new Audio('jingle.mp3');
-    jingleSfx.play().catch(() => {});
-  }
+  function playJingleSfx() { new Audio('jingle.mp3').play().catch(() => {}); }
+  function playSpitSfx() { new Audio('spit.mp3').play().catch(() => {}); }
+  function playDamageSfx() { new Audio('damage.mp3').play().catch(() => {}); }
+  function playLoseSfx() { new Audio('lose.mp3').play().catch(() => {}); }
+  function playStarDeathSfx() { new Audio('stardeath.mp3').play().catch(() => {}); }
+  function playUnlockSfx() { new Audio('unlock.mp3').play().catch(() => {}); }
+  function playSwitchSfx() { new Audio('switch.mp3').play().catch(() => {}); }
+  function playHoverSfx() { new Audio('hover.mp3').play().catch(() => {}); }
 
-  function playSpitSfx() {
-    const spitSfx = new Audio('spit.mp3');
-    spitSfx.play().catch(() => {});
-  }
-
-  function playDamageSfx() {
-    const damageSfx = new Audio('damage.mp3');
-    damageSfx.play().catch(() => {});
-  }
-
-  function playLoseSfx() {
-    const loseSfx = new Audio('lose.mp3');
-    loseSfx.play().catch(() => {});
-  }
-
-  function playStarDeathSfx() {
-    const starDeathSfx = new Audio('stardeath.mp3');
-    starDeathSfx.play().catch(() => {});
-  }
-
-  function playUnlockSfx() {
-    const unlockSfx = new Audio('unlock.mp3');
-    unlockSfx.play().catch(() => {});
-  }
-
-  function playSwitchSfx() {
-    const switchSfx = new Audio('switch.mp3');
-    switchSfx.play().catch(() => {});
-  }
-
-  function playHoverSfx() {
-    const hoverSfx = new Audio('hover.mp3');
-    hoverSfx.play().catch(() => {});
-  }
-
-  // Hover SFX for Title Screen Buttons
   [tutorialBtnImg, playBtnImg, optionsBtnImg].forEach(btn => {
     btn.addEventListener('mouseenter', () => {
-      if (!gameStarted) {
-        playHoverSfx();
-      }
+      if (!gameStarted) playHoverSfx();
     });
   });
 
@@ -530,8 +808,7 @@
   let hasKey = false;
   let keyDropped = false;
   let keyPickedUp = false;
-  let keyX = 0;
-  let keyY = 0;
+  let keyX = 0, keyY = 0;
   let room3Unlocked = false;
 
   let inPrompt = false;
@@ -540,7 +817,6 @@
   let playerHp = 3;
   let isInvincible = false;
 
-  // Hue Shift Logic
   const hues = [0, 72, 144, 216, 288];
   let currentHueIndex = 0;
 
@@ -564,12 +840,9 @@
   rightBtnImg.addEventListener('click', nextHue);
 
   player.addEventListener('click', () => {
-    if (!gameStarted) {
-      nextHue();
-    }
+    if (!gameStarted) nextHue();
   });
 
-  // Game Coordinates
   let posX = 276, posY = 150, speed = 3.75;
 
   player.style.left = '50vw';
@@ -578,10 +851,7 @@
 
   function getCanvasOffset() {
     const rect = roomDiv.getBoundingClientRect();
-    return {
-      left: rect.left,
-      top: rect.top
-    };
+    return { left: rect.left, top: rect.top };
   }
 
   function updatePlayerPosition() {
@@ -604,7 +874,6 @@
     player.style.top = (offset.top + (posY * 1.5)) + 'px';
 
     startScreen.style.opacity = '0';
-    
     roomDiv.style.opacity = '1';
     hudContainer.style.opacity = '1';
 
@@ -624,11 +893,8 @@
   function updateHeartsUI() {
     for (let i = 0; i < 3; i++) {
       const heartEl = document.getElementById(`heart-${i}`);
-      if (i < playerHp) {
-        heartEl.classList.remove('empty');
-      } else {
-        heartEl.classList.add('empty');
-      }
+      if (i < playerHp) heartEl.classList.remove('empty');
+      else heartEl.classList.add('empty');
     }
   }
 
@@ -645,9 +911,7 @@
     gameOverOption = 'yes';
     updateGameOverUI();
     gameOverScreen.style.display = 'flex';
-    setTimeout(() => {
-      gameOverScreen.style.opacity = '1';
-    }, 50);
+    setTimeout(() => { gameOverScreen.style.opacity = '1'; }, 50);
   }
 
   function resetGame() {
@@ -655,9 +919,7 @@
     updateHeartsUI();
     isGameOver = false;
     gameOverScreen.style.opacity = '0';
-    setTimeout(() => {
-      gameOverScreen.style.display = 'none';
-    }, 500);
+    setTimeout(() => { gameOverScreen.style.display = 'none'; }, 500);
 
     posX = 276;
     posY = 150;
@@ -679,17 +941,13 @@
     updateKeyUI();
 
     gameOverScreen.style.opacity = '0';
-    setTimeout(() => {
-      gameOverScreen.style.display = 'none';
-    }, 500);
+    setTimeout(() => { gameOverScreen.style.display = 'none'; }, 500);
 
     roomDiv.style.opacity = '0';
     hudContainer.style.opacity = '0';
 
     startScreen.style.display = 'flex';
-    setTimeout(() => {
-      startScreen.style.opacity = '1';
-    }, 50);
+    setTimeout(() => { startScreen.style.opacity = '1'; }, 50);
 
     player.style.cursor = 'pointer';
     player.style.transition = 'none';
@@ -732,24 +990,13 @@
     roomDiv.appendChild(el);
 
     starEntities.push({
-      element: el,
-      room: roomNum,
-      x: x,
-      y: y,
-      width: 48,
-      height: 80,
-      hp: 4,
-      alive: true,
-      vx: 0,
-      vy: 0,
-      state: 'idle',
-      timer: Math.random() * 60,
-      shootTimer: 0
+      element: el, room: roomNum, x: x, y: y,
+      width: 48, height: 80, hp: 4, alive: true,
+      vx: 0, vy: 0, state: 'idle', timer: Math.random() * 60, shootTimer: 0
     });
   }
 
   createStar(3, 480, 160);
-
   for (let i = 0; i < 8; i++) {
     const randomX = Math.floor(Math.random() * (450 - 60 + 1)) + 60;
     const randomY = Math.floor(Math.random() * (220 - 60 + 1)) + 60;
@@ -765,7 +1012,8 @@
         'F8': { targetRoom: 2, spawnX: 276, spawnY: 60 },
         'G8': { targetRoom: 2, spawnX: 276, spawnY: 60 }
       },
-      hasOrb: false
+      hasOrb: false,
+      computerTile: 'B5'
     },
     2: {
       walls: ['A1','B1','C1','D1','E1','H1','I1','J1','K1','L1',
@@ -851,7 +1099,10 @@
         const tile = gridMap[tileName];
         tile.element.className = 'tile';
 
-        if (roomData.walls.includes(tileName)) {
+        if (roomData.computerTile === tileName) {
+          tile.element.style.backgroundImage = "url('computer.png')";
+          tile.solid = true;
+        } else if (roomData.walls.includes(tileName)) {
           tile.element.style.backgroundImage = "url('wall.png')";
           tile.solid = true;
         } else if (roomData.doors[tileName]) {
@@ -921,70 +1172,41 @@
   const activeBullets = [];
   const enemyBullets = [];
 
-  goOptYes.addEventListener('click', () => {
-    if (isGameOver) {
-      resetGame();
-    }
-  });
-
-  goOptNo.addEventListener('click', () => {
-    if (isGameOver) {
-      returnToTitleScreen();
-    }
-  });
+  goOptYes.addEventListener('click', () => { if (isGameOver) resetGame(); });
+  goOptNo.addEventListener('click', () => { if (isGameOver) returnToTitleScreen(); });
 
   window.addEventListener('keydown', (e) => {
     const k = e.key.toLowerCase();
     keys[k] = true;
 
+    if (isBrowserOpen) return;
+
     if (!gameStarted) {
-      if (k === ' ' || k === 'enter' || k === 'e') {
-        startGame();
-      } else if (k === 'a' || k === 'arrowleft') {
-        currentHueIndex = (currentHueIndex - 1 + hues.length) % hues.length;
-        updatePlayerHue();
-        playSwitchSfx();
-      } else if (k === 'd' || k === 'arrowright') {
-        nextHue();
-      }
+      if (k === ' ' || k === 'enter' || k === 'e') startGame();
+      else if (k === 'a' || k === 'arrowleft') { currentHueIndex = (currentHueIndex - 1 + hues.length) % hues.length; updatePlayerHue(); playSwitchSfx(); }
+      else if (k === 'd' || k === 'arrowright') nextHue();
       return;
     }
 
     if (isGameOver) {
-      if (k === 'a' || k === 'arrowleft') {
-        gameOverOption = 'yes';
-        updateGameOverUI();
-      } else if (k === 'd' || k === 'arrowright') {
-        gameOverOption = 'no';
-        updateGameOverUI();
-      } else if (k === ' ' || k === 'enter') {
-        if (gameOverOption === 'yes') {
-          resetGame();
-        } else {
-          returnToTitleScreen();
-        }
+      if (k === 'a' || k === 'arrowleft') { gameOverOption = 'yes'; updateGameOverUI(); }
+      else if (k === 'd' || k === 'arrowright') { gameOverOption = 'no'; updateGameOverUI(); }
+      else if (k === ' ' || k === 'enter') {
+        if (gameOverOption === 'yes') resetGame();
+        else returnToTitleScreen();
       }
       return;
     }
 
     if (inPrompt) {
-      if (k === 'a' || k === 'arrowleft') {
-        selectedOption = 'yes';
-        updatePromptUI();
-      } else if (k === 'd' || k === 'arrowright') {
-        selectedOption = 'no';
-        updatePromptUI();
-      } else if (k === ' ' || k === 'enter') {
-        confirmPrompt();
-      }
+      if (k === 'a' || k === 'arrowleft') { selectedOption = 'yes'; updatePromptUI(); }
+      else if (k === 'd' || k === 'arrowright') { selectedOption = 'no'; updatePromptUI(); }
+      else if (k === ' ' || k === 'enter') confirmPrompt();
       return;
     }
 
-    if (k === 'e') {
-      interact();
-    } else if (k === ' ' && hasBulletAbility) {
-      shootBullet();
-    }
+    if (k === 'e') interact();
+    else if (k === ' ' && hasBulletAbility) shootBullet();
   });
 
   window.addEventListener('keyup', (e) => {
@@ -1036,17 +1258,24 @@
   }
 
   function checkInteractables() {
-    // Clear highlights
     orb.classList.remove('interact-highlight');
     keyItem.classList.remove('interact-highlight');
     gridMap['F8'].element.classList.remove('interact-highlight');
     gridMap['G8'].element.classList.remove('interact-highlight');
+    gridMap['B5'].element.classList.remove('interact-highlight');
 
-    if (!gameStarted || isGameOver || isTransitioning || inPrompt) return;
+    if (!gameStarted || isGameOver || isTransitioning || inPrompt || isBrowserOpen) return;
 
     const playerBox = { left: posX + 4, right: posX + 44, top: posY + 40, bottom: posY + 80 };
 
-    // Check Orb (Room 2)
+    if (currentRoom === 1) {
+      const compBox = { left: 30, right: 120, top: 180, bottom: 270 };
+      if (playerBox.right > compBox.left && playerBox.left < compBox.right &&
+          playerBox.bottom > compBox.top && playerBox.top < compBox.bottom) {
+        gridMap['B5'].element.classList.add('interact-highlight');
+      }
+    }
+
     if (currentRoom === 2 && !orbAbsorbed) {
       const orbArea = { left: 230, right: 370, top: 130, bottom: 270 };
       if (playerBox.right > orbArea.left && playerBox.left < orbArea.right &&
@@ -1055,7 +1284,6 @@
       }
     }
 
-    // Automatic Key Pickup Check (Room 3)
     if (currentRoom === 3 && keyDropped && !keyPickedUp) {
       const keyBox = { left: keyX - 10, right: keyX + 42, top: keyY - 10, bottom: keyY + 42 };
       if (playerBox.right > keyBox.left && playerBox.left < keyBox.right &&
@@ -1070,7 +1298,6 @@
       }
     }
 
-    // Check Locked Door (Room 3)
     if (currentRoom === 3 && !room3Unlocked) {
       const doorArea = { left: 230, right: 370, top: 290, bottom: 400 };
       if (playerBox.right > doorArea.left && playerBox.left < doorArea.right &&
@@ -1084,9 +1311,17 @@
   function interact() {
     const playerBox = { left: posX + 4, right: posX + 44, top: posY + 40, bottom: posY + 80 };
 
+    if (currentRoom === 1) {
+      const compBox = { left: 30, right: 120, top: 180, bottom: 270 };
+      if (playerBox.right > compBox.left && playerBox.left < compBox.right &&
+          playerBox.bottom > compBox.top && playerBox.top < compBox.bottom) {
+        openBrowser();
+        return;
+      }
+    }
+
     if (rooms[currentRoom].hasOrb && !orbAbsorbed) {
       const orbArea = { left: 230, right: 370, top: 130, bottom: 270 };
-
       if (playerBox.right > orbArea.left && playerBox.left < orbArea.right &&
           playerBox.bottom > orbArea.top && playerBox.top < orbArea.bottom) {
         openOrbPrompt();
@@ -1100,7 +1335,7 @@
           playerBox.bottom > doorArea.top && playerBox.top < doorArea.bottom) {
         if (hasKey) {
           room3Unlocked = true;
-          hasKey = false; // Consume key when opening
+          hasKey = false;
           updateKeyUI();
           rooms[3].doors['F8'].locked = false;
           rooms[3].doors['G8'].locked = false;
@@ -1129,8 +1364,7 @@
     let bX = posX + 16;
     let bY = posY + 32;
 
-    let velX = 0;
-    let velY = 0;
+    let velX = 0, velY = 0;
     const bulletSpeed = 7;
 
     if (lastDir === 'up') velY = -bulletSpeed;
@@ -1220,7 +1454,6 @@
               b.y + 16 > star.y + 20 && b.y < star.y + star.height) {
             
             star.hp--;
-
             star.element.classList.add('hit');
             setTimeout(() => { star.element.classList.remove('hit'); }, 150);
 
@@ -1339,9 +1572,7 @@
 
     const door = rooms[currentRoom].doors[currentTile];
     if (door) {
-      if (door.locked && !room3Unlocked) {
-        return;
-      }
+      if (door.locked && !room3Unlocked) return;
 
       isTransitioning = true;
       fadeOverlay.style.opacity = '1';
@@ -1371,7 +1602,7 @@
   function gameLoop() {
     let dx = 0, dy = 0;
 
-    if (gameStarted && !isGameOver && !isTransitioning && !inPrompt) {
+    if (gameStarted && !isGameOver && !isTransitioning && !inPrompt && !isBrowserOpen) {
       if (keys['w'] || keys['arrowup']) { dy -= speed; currentDir = 'up'; lastDir = 'up'; }
       else if (keys['s'] || keys['arrowdown']) { dy += speed; currentDir = 'down'; lastDir = 'down'; }
       
@@ -1393,7 +1624,6 @@
       if (!isColliding(posX, nextY)) posY = nextY;
 
       updatePlayerPosition();
-
       updateStars();
       checkDoorTriggers();
       checkInteractables();
@@ -1430,7 +1660,7 @@
       });
     }
 
-    if (gameStarted && !isGameOver) {
+    if (gameStarted && !isGameOver && !isBrowserOpen) {
       updateBullets();
     }
 
