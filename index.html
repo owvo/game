@@ -24,9 +24,11 @@
       margin-top: 10px;
       margin-bottom: 20px;
       image-rendering: pixelated;
+      z-index: 600; /* Keeps logo visible on title screen */
+      position: relative;
     }
 
-    /* Start Screen Elements */
+    /* Start Screen Overlay */
     #start-screen {
       position: absolute;
       top: 0;
@@ -39,20 +41,11 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      transition: opacity 0.5s ease;
-    }
-
-    #giant-jumby {
-      width: 192px;
-      height: 320px;
-      background-size: contain;
-      background-repeat: no-repeat;
-      image-rendering: pixelated;
-      transition: transform 0.8s ease-in-out, opacity 0.8s ease-in-out;
+      transition: opacity 1.2s ease-in-out;
     }
 
     #play-btn {
-      margin-top: 30px;
+      margin-top: 250px; /* Space for the giant animated sprite */
       padding: 12px 30px;
       font-size: 24px;
       color: #fff;
@@ -61,6 +54,7 @@
       font-family: monospace;
       cursor: pointer;
       box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+      transition: opacity 0.3s ease;
     }
 
     #play-btn.selected {
@@ -79,6 +73,8 @@
       grid-template-rows: repeat(8, 50px);
       transform: scale(1.5);
       transform-origin: top center;
+      opacity: 0; /* Fades in alongside Jumby transition */
+      transition: opacity 1.2s ease-in-out;
     }
 
     #fade-overlay {
@@ -94,7 +90,7 @@
       z-index: 100;
     }
 
-    /* Game Over Screen Overlay */
+    /* Game Over Overlay */
     #game-over-screen {
       position: absolute;
       top: 0;
@@ -139,7 +135,8 @@
       width: 48px;
       height: 80px;
       position: absolute;
-      z-index: 10;
+      z-index: 550; /* Above title overlay during entry spin animation */
+      transform-origin: center center;
     }
 
     #player img {
@@ -161,6 +158,23 @@
       0% { opacity: 1; }
       50% { opacity: 0.3; }
       100% { opacity: 1; }
+    }
+
+    /* Bounce, 360 Spin, and Shrink Animation */
+    .start-animation {
+      animation: bounceSpinShrink 1.2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    @keyframes bounceSpinShrink {
+      0% {
+        transform: scale(4) rotate(0deg);
+      }
+      25% {
+        transform: scale(4.8) rotate(0deg); /* Playful bounce */
+      }
+      100% {
+        transform: scale(1) rotate(360deg); /* Spin & shrink down to game size */
+      }
     }
 
     #orb {
@@ -251,6 +265,8 @@
       display: flex;
       gap: 12px;
       z-index: 50;
+      opacity: 0;
+      transition: opacity 1.2s ease-in-out;
     }
 
     .heart {
@@ -282,18 +298,16 @@
 </head>
 <body>
 
-<!-- Start Screen -->
+<img id="arcade-logo" src="logo.png" alt="JUMBY">
+
+<!-- Start Screen Overlay -->
 <div id="start-screen">
-  <div id="giant-jumby"></div>
   <button id="play-btn" class="selected">PLAY</button>
 </div>
-
-<img id="arcade-logo" src="logo.png" alt="JUMBY">
 
 <div id="room">
   <div id="fade-overlay"></div>
   
-  <!-- Game Over Screen Inside Canvas -->
   <div id="game-over-screen">
     <img id="lose-img" src="lose.png" alt="YOU LOSE">
     <div id="game-over-text">Try Again?</div>
@@ -337,14 +351,14 @@
   const optNo = document.getElementById('opt-no');
 
   const startScreen = document.getElementById('start-screen');
-  const giantJumby = document.getElementById('giant-jumby');
   const playBtn = document.getElementById('play-btn');
+  const hudContainer = document.getElementById('hud-container');
 
   const gameOverScreen = document.getElementById('game-over-screen');
   const goOptYes = document.getElementById('go-opt-yes');
   const goOptNo = document.getElementById('go-opt-no');
 
-  // Audio Setup
+  // Audio Tracks
   const bgm = new Audio('bassline.mp3');
   bgm.loop = true;
 
@@ -359,6 +373,11 @@
   function playDamageSfx() {
     const damageSfx = new Audio('damage.mp3');
     damageSfx.play().catch(() => {});
+  }
+
+  function playLoseSfx() {
+    const loseSfx = new Audio('lose.mp3');
+    loseSfx.play().catch(() => {});
   }
 
   let gameStarted = false;
@@ -376,29 +395,35 @@
   let playerHp = 5;
   let isInvincible = false;
 
-  // Title Screen Animation
-  const idleFrames = ['idle_1.png', 'idle_2.png'];
-  let giantFrameIdx = 0;
-  giantJumby.style.backgroundImage = `url('${idleFrames[0]}')`;
-  setInterval(() => {
-    if (!gameStarted) {
-      giantFrameIdx = (giantFrameIdx + 1) % idleFrames.length;
-      giantJumby.style.backgroundImage = `url('${idleFrames[giantFrameIdx]}')`;
-    }
-  }, 400);
+  // Initialize Player Position
+  let posX = 276, posY = 150, speed = 3.75;
+  player.style.left = posX + 'px';
+  player.style.top = posY + 'px';
+
+  // Set giant player scale for title screen
+  player.style.transform = 'scale(4)';
 
   function startGame() {
     if (gameStarted) return;
     gameStarted = true;
 
-    giantJumby.style.transform = 'scale(0.25) translateY(300px)';
-    giantJumby.style.opacity = '0';
+    // Fade UI buttons and start overlay
+    playBtn.style.opacity = '0';
     startScreen.style.opacity = '0';
+    
+    // Fade in game world & HUD synchronously with Jumby's animation
+    roomDiv.style.opacity = '1';
+    hudContainer.style.opacity = '1';
+
+    // Bounce -> 360 Spin -> Shrink animation
+    player.classList.add('start-animation');
 
     setTimeout(() => {
       startScreen.style.display = 'none';
-      loadRoom(1);
-    }, 800);
+      player.classList.remove('start-animation');
+      player.style.transform = 'scale(1)';
+      player.style.zIndex = '10'; // Return to normal layer depth inside room
+    }, 1200);
   }
 
   playBtn.addEventListener('click', startGame);
@@ -428,6 +453,10 @@
 
   function triggerGameOver() {
     isGameOver = true;
+    bgm.pause();
+    walkSfx.pause();
+    playLoseSfx(); // Trigger game over sound
+
     gameOverOption = 'yes';
     updateGameOverUI();
     gameOverScreen.style.display = 'flex';
@@ -445,7 +474,6 @@
       gameOverScreen.style.display = 'none';
     }, 500);
 
-    // Reset player & state
     posX = 276;
     posY = 150;
     player.style.left = posX + 'px';
@@ -472,7 +500,7 @@
     }, 1000);
   }
 
-  // Master list of all star entities
+  // Star entities setup
   const starEntities = [];
 
   function createStar(roomNum, x, y) {
@@ -626,6 +654,8 @@
     });
   }
 
+  loadRoom(1);
+
   const animations = {
     idle_down: ['idle_1.png', 'idle_2.png'],
     idle_up: ['backidle_1.png', 'backidle_2.png'],
@@ -657,7 +687,6 @@
     }
   }
 
-  let posX = 276, posY = 150, speed = 3.75;
   let frameIndex = 0, lastDir = 'down', currentDir = 'down', animTimer = 0;
   const keys = {};
 
@@ -934,7 +963,6 @@
     }
   }
 
-  // Non-freezing Star Boundary Collision Check
   function isColliding(newX, newY) {
     const playerBox = { left: newX + 4, right: newX + 44, top: newY + 40, bottom: newY + 80 };
 
@@ -956,7 +984,6 @@
       }
     }
 
-    // Star Collision: Deals damage and triggers obstacle pushback without freezing state
     for (const star of starEntities) {
       if (star.room === currentRoom && star.alive) {
         if (playerBox.right > star.x + 8 && playerBox.left < star.x + star.width - 8 &&
@@ -1008,9 +1035,9 @@
   updateHeartsUI();
 
   function gameLoop() {
-    if (gameStarted && !isGameOver && !isTransitioning && !inPrompt) {
-      let dx = 0, dy = 0;
+    let dx = 0, dy = 0;
 
+    if (gameStarted && !isGameOver && !isTransitioning && !inPrompt) {
       if (keys['w'] || keys['arrowup']) { dy -= speed; currentDir = 'up'; lastDir = 'up'; }
       else if (keys['s'] || keys['arrowdown']) { dy += speed; currentDir = 'down'; lastDir = 'down'; }
       
@@ -1034,38 +1061,40 @@
       player.style.left = posX + 'px';
       player.style.top = posY + 'px';
 
-      animTimer++;
-      const animKey = currentlyMoving ? currentDir : `idle_${lastDir}`;
-      const rate = currentlyMoving ? 6 : 20;
-
-      if (animTimer % rate === 0) {
-        frameIndex = (frameIndex + 1) % animations[animKey].length;
-      }
-
-      if (frameIndex >= animations[animKey].length) {
-        frameIndex = 0;
-      }
-
-      showFrame(animKey, frameIndex);
-
-      if (animTimer % 25 === 0 && !orbAbsorbed) {
-        orbFrameIndex = (orbFrameIndex + 1) % orbFrames.length;
-        orb.style.backgroundImage = `url('${orbFrames[orbFrameIndex]}')`;
-      }
-
-      if (animTimer % 12 === 0) {
-        starFrameIndex = (starFrameIndex + 1) % starFrames.length;
-        starEntities.forEach(star => {
-          if (star.alive) {
-            star.element.style.backgroundImage = `url('${starFrames[starFrameIndex]}')`;
-          }
-        });
-      }
-
       updateStars();
       checkDoorTriggers();
     } else {
       if (!walkSfx.paused) walkSfx.pause();
+    }
+
+    // Sprite Animations (Runs even on title screen for idle effect)
+    animTimer++;
+    const currentlyMoving = dx !== 0 || dy !== 0;
+    const animKey = currentlyMoving ? currentDir : `idle_${lastDir}`;
+    const rate = currentlyMoving ? 6 : 20;
+
+    if (animTimer % rate === 0) {
+      frameIndex = (frameIndex + 1) % animations[animKey].length;
+    }
+
+    if (frameIndex >= animations[animKey].length) {
+      frameIndex = 0;
+    }
+
+    showFrame(animKey, frameIndex);
+
+    if (animTimer % 25 === 0 && !orbAbsorbed) {
+      orbFrameIndex = (orbFrameIndex + 1) % orbFrames.length;
+      orb.style.backgroundImage = `url('${orbFrames[orbFrameIndex]}')`;
+    }
+
+    if (animTimer % 12 === 0) {
+      starFrameIndex = (starFrameIndex + 1) % starFrames.length;
+      starEntities.forEach(star => {
+        if (star.alive) {
+          star.element.style.backgroundImage = `url('${starFrames[starFrameIndex]}')`;
+        }
+      });
     }
 
     if (gameStarted && !isGameOver) {
