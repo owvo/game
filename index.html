@@ -26,6 +26,49 @@
       image-rendering: pixelated;
     }
 
+    /* Start Screen Elements */
+    #start-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: #000000;
+      z-index: 500;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      transition: opacity 0.5s ease;
+    }
+
+    #giant-jumby {
+      width: 192px;
+      height: 320px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      image-rendering: pixelated;
+      transition: transform 0.8s ease-in-out, opacity 0.8s ease-in-out;
+    }
+
+    #play-btn {
+      margin-top: 30px;
+      padding: 12px 30px;
+      font-size: 24px;
+      color: #fff;
+      background: #222;
+      border: 3px solid #fff;
+      font-family: monospace;
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    }
+
+    #play-btn.selected {
+      background: #fff;
+      color: #000;
+    }
+
+    /* Room Canvas */
     #room {
       width: 600px;
       height: 400px;
@@ -49,6 +92,36 @@
       pointer-events: none;
       transition: opacity 0.3s ease-in-out;
       z-index: 100;
+    }
+
+    /* Game Over Screen Overlay */
+    #game-over-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.95);
+      z-index: 200;
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+
+    #lose-img {
+      width: 300px;
+      height: auto;
+      image-rendering: pixelated;
+      margin-bottom: 20px;
+    }
+
+    #game-over-text {
+      color: #fff;
+      font-size: 18px;
+      margin-bottom: 10px;
     }
 
     .tile {
@@ -173,7 +246,6 @@
       border-radius: 3px;
     }
 
-    /* Hearts HUD UI */
     #hud-container {
       margin-top: 220px;
       display: flex;
@@ -210,10 +282,27 @@
 </head>
 <body>
 
+<!-- Start Screen -->
+<div id="start-screen">
+  <div id="giant-jumby"></div>
+  <button id="play-btn" class="selected">PLAY</button>
+</div>
+
 <img id="arcade-logo" src="logo.png" alt="JUMBY">
 
 <div id="room">
   <div id="fade-overlay"></div>
+  
+  <!-- Game Over Screen Inside Canvas -->
+  <div id="game-over-screen">
+    <img id="lose-img" src="lose.png" alt="YOU LOSE">
+    <div id="game-over-text">Try Again?</div>
+    <div class="dialog-options">
+      <span id="go-opt-yes" class="option selected">Yes</span>
+      <span id="go-opt-no" class="option">No</span>
+    </div>
+  </div>
+
   <div id="orb"></div>
   <div id="player"></div>
   <div id="dialog-box">
@@ -247,6 +336,14 @@
   const optYes = document.getElementById('opt-yes');
   const optNo = document.getElementById('opt-no');
 
+  const startScreen = document.getElementById('start-screen');
+  const giantJumby = document.getElementById('giant-jumby');
+  const playBtn = document.getElementById('play-btn');
+
+  const gameOverScreen = document.getElementById('game-over-screen');
+  const goOptYes = document.getElementById('go-opt-yes');
+  const goOptNo = document.getElementById('go-opt-no');
+
   // Audio Setup
   const bgm = new Audio('bassline.mp3');
   bgm.loop = true;
@@ -264,6 +361,10 @@
     damageSfx.play().catch(() => {});
   }
 
+  let gameStarted = false;
+  let isGameOver = false;
+  let gameOverOption = 'yes';
+
   let currentRoom = 1;
   let isTransitioning = false;
   let hasBulletAbility = false;
@@ -272,9 +373,35 @@
   let inPrompt = false;
   let selectedOption = 'yes';
 
-  // Jumby Health & Healing Mechanics
   let playerHp = 5;
   let isInvincible = false;
+
+  // Title Screen Animation
+  const idleFrames = ['idle_1.png', 'idle_2.png'];
+  let giantFrameIdx = 0;
+  giantJumby.style.backgroundImage = `url('${idleFrames[0]}')`;
+  setInterval(() => {
+    if (!gameStarted) {
+      giantFrameIdx = (giantFrameIdx + 1) % idleFrames.length;
+      giantJumby.style.backgroundImage = `url('${idleFrames[giantFrameIdx]}')`;
+    }
+  }, 400);
+
+  function startGame() {
+    if (gameStarted) return;
+    gameStarted = true;
+
+    giantJumby.style.transform = 'scale(0.25) translateY(300px)';
+    giantJumby.style.opacity = '0';
+    startScreen.style.opacity = '0';
+
+    setTimeout(() => {
+      startScreen.style.display = 'none';
+      loadRoom(1);
+    }, 800);
+  }
+
+  playBtn.addEventListener('click', startGame);
 
   function updateHeartsUI() {
     for (let i = 0; i < 5; i++) {
@@ -287,8 +414,9 @@
     }
   }
 
+  // Auto Heal Mechanics
   setInterval(() => {
-    if (playerHp < 5) {
+    if (playerHp < 5 && playerHp > 0 && !isGameOver) {
       const healIndex = playerHp;
       playerHp++;
       const heartEl = document.getElementById(`heart-${healIndex}`);
@@ -298,11 +426,43 @@
     }
   }, 5000);
 
+  function triggerGameOver() {
+    isGameOver = true;
+    gameOverOption = 'yes';
+    updateGameOverUI();
+    gameOverScreen.style.display = 'flex';
+    setTimeout(() => {
+      gameOverScreen.style.opacity = '1';
+    }, 50);
+  }
+
+  function resetGame() {
+    playerHp = 5;
+    updateHeartsUI();
+    isGameOver = false;
+    gameOverScreen.style.opacity = '0';
+    setTimeout(() => {
+      gameOverScreen.style.display = 'none';
+    }, 500);
+
+    // Reset player & state
+    posX = 276;
+    posY = 150;
+    player.style.left = posX + 'px';
+    player.style.top = posY + 'px';
+    loadRoom(1);
+  }
+
   function takePlayerDamage() {
-    if (isInvincible || playerHp <= 0) return;
+    if (isInvincible || playerHp <= 0 || isGameOver) return;
     playDamageSfx();
     playerHp--;
     updateHeartsUI();
+
+    if (playerHp <= 0) {
+      triggerGameOver();
+      return;
+    }
 
     isInvincible = true;
     player.classList.add('invincible');
@@ -312,7 +472,7 @@
     }, 1000);
   }
 
-  // Star Entity Management
+  // Master list of all star entities
   const starEntities = [];
 
   function createStar(roomNum, x, y) {
@@ -334,16 +494,14 @@
       alive: true,
       vx: 0,
       vy: 0,
-      state: 'idle', // 'idle' or 'walking'
+      state: 'idle',
       timer: Math.random() * 60,
       shootTimer: 0
     });
   }
 
-  // Room 3 Star
   createStar(3, 480, 160);
 
-  // Room 4 Stars
   for (let i = 0; i < 8; i++) {
     const randomX = Math.floor(Math.random() * (450 - 60 + 1)) + 60;
     const randomY = Math.floor(Math.random() * (220 - 60 + 1)) + 60;
@@ -510,6 +668,28 @@
     const k = e.key.toLowerCase();
     keys[k] = true;
 
+    if (!gameStarted) {
+      if (k === ' ' || k === 'enter') {
+        startGame();
+      }
+      return;
+    }
+
+    if (isGameOver) {
+      if (k === 'a' || k === 'arrowleft') {
+        gameOverOption = 'yes';
+        updateGameOverUI();
+      } else if (k === 'd' || k === 'arrowright') {
+        gameOverOption = 'no';
+        updateGameOverUI();
+      } else if (k === ' ' || k === 'enter') {
+        if (gameOverOption === 'yes') {
+          resetGame();
+        }
+      }
+      return;
+    }
+
     if (inPrompt) {
       if (k === 'a' || k === 'arrowleft') {
         selectedOption = 'yes';
@@ -533,6 +713,16 @@
   window.addEventListener('keyup', (e) => {
     keys[e.key.toLowerCase()] = false;
   });
+
+  function updateGameOverUI() {
+    if (gameOverOption === 'yes') {
+      goOptYes.classList.add('selected');
+      goOptNo.classList.remove('selected');
+    } else {
+      goOptNo.classList.add('selected');
+      goOptYes.classList.remove('selected');
+    }
+  }
 
   function updatePromptUI() {
     if (selectedOption === 'yes') {
@@ -614,7 +804,6 @@
     const startX = star.x + 16;
     const startY = star.y + 32;
 
-    // Vector calculation targeting Jumby's center
     const targetX = posX + 24;
     const targetY = posY + 40;
     const angle = Math.atan2(targetY - startY, targetX - startX);
@@ -634,26 +823,24 @@
     starEntities.forEach(star => {
       if (star.room !== currentRoom || !star.alive) return;
 
-      // Shooting Timer (Every 2 Seconds = 120 Frames)
       star.shootTimer++;
       if (star.shootTimer >= 120) {
         star.shootTimer = 0;
         enemyShoot(star);
       }
 
-      // Random Wandering State AI
       star.timer--;
       if (star.timer <= 0) {
         if (star.state === 'idle') {
           star.state = 'walking';
-          star.timer = Math.floor(Math.random() * 60) + 40; // Walk for 0.6-1.6s
+          star.timer = Math.floor(Math.random() * 60) + 40;
           const dirs = [{x: 1, y: 0}, {x: -1, y: 0}, {x: 0, y: 1}, {x: 0, y: -1}, {x: 0.7, y: 0.7}, {x: -0.7, y: -0.7}];
           const chosen = dirs[Math.floor(Math.random() * dirs.length)];
           star.vx = chosen.x * 1.5;
           star.vy = chosen.y * 1.5;
         } else {
           star.state = 'idle';
-          star.timer = 120; // Stand still for ~2 seconds
+          star.timer = 120;
           star.vx = 0;
           star.vy = 0;
         }
@@ -671,7 +858,6 @@
   }
 
   function updateBullets() {
-    // Player Bullets
     for (let i = activeBullets.length - 1; i >= 0; i--) {
       const b = activeBullets[i];
       b.x += b.vx;
@@ -716,7 +902,6 @@
       b.element.style.top = b.y + 'px';
     }
 
-    // Enemy Bullets
     for (let i = enemyBullets.length - 1; i >= 0; i--) {
       const eb = enemyBullets[i];
       if (eb.room !== currentRoom) {
@@ -749,6 +934,7 @@
     }
   }
 
+  // Non-freezing Star Boundary Collision Check
   function isColliding(newX, newY) {
     const playerBox = { left: newX + 4, right: newX + 44, top: newY + 40, bottom: newY + 80 };
 
@@ -770,10 +956,11 @@
       }
     }
 
+    // Star Collision: Deals damage and triggers obstacle pushback without freezing state
     for (const star of starEntities) {
       if (star.room === currentRoom && star.alive) {
-        if (playerBox.right > star.x && playerBox.left < star.x + star.width &&
-            playerBox.bottom > star.y + 20 && playerBox.top < star.y + star.height) {
+        if (playerBox.right > star.x + 8 && playerBox.left < star.x + star.width - 8 &&
+            playerBox.bottom > star.y + 30 && playerBox.top < star.y + star.height) {
           takePlayerDamage();
           return true;
         }
@@ -787,7 +974,7 @@
     if (isTransitioning) return;
 
     const feetX = posX + 24;
-    const feetY = posY + 35; // Position offset to handle top/bottom door triggers seamlessly
+    const feetY = posY + 35;
     const colIndex = Math.floor(feetX / TILE_SIZE);
     const rowIndex = Math.floor(feetY / TILE_SIZE) + 1;
     const currentTile = `${COLS[colIndex]}${rowIndex}`;
@@ -818,11 +1005,10 @@
   const starFrames = ['star1.png', 'star2.png', 'star3.png', 'star4.png'];
   let starFrameIndex = 0;
 
-  loadRoom(1);
   updateHeartsUI();
 
   function gameLoop() {
-    if (!isTransitioning && !inPrompt) {
+    if (gameStarted && !isGameOver && !isTransitioning && !inPrompt) {
       let dx = 0, dy = 0;
 
       if (keys['w'] || keys['arrowup']) { dy -= speed; currentDir = 'up'; lastDir = 'up'; }
@@ -882,7 +1068,10 @@
       if (!walkSfx.paused) walkSfx.pause();
     }
 
-    updateBullets();
+    if (gameStarted && !isGameOver) {
+      updateBullets();
+    }
+
     requestAnimationFrame(gameLoop);
   }
 
