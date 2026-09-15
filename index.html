@@ -93,7 +93,6 @@
       display: none;
     }
 
-    /* Star Entity CSS */
     #star-entity {
       width: 60px;
       height: 60px;
@@ -108,7 +107,6 @@
       transition: opacity 0.6s ease-out, filter 0.1s ease;
     }
 
-    /* Red hit overlay filter */
     #star-entity.hit {
       filter: drop-shadow(0px 0px 0px red) sepia(1) hue-rotate(-50deg) saturate(1000%);
     }
@@ -213,21 +211,21 @@
   let hasBulletAbility = false;
   let orbAbsorbed = false;
 
-  // Star Entity State
   let starHp = 4;
   let starAlive = true;
 
-  // Prompt / Dialog State
   let inPrompt = false;
   let selectedOption = 'yes';
 
   const rooms = {
     1: {
-      walls: ['A1','B1','C1','D1','E1','F1','G1','H1','I1','J1','K1','L1',
+      walls: ['A1','B1','C1','D1','E1','H1','I1','J1','K1','L1',
               'A2','A3','A4','A5','A6','A7','A8',
               'L2','L3','L4','L5','L6','L7','L8'],
       doors: {
-        'F8': { targetRoom: 2, spawnX: 276, spawnY: 60 },
+        'F1': { targetRoom: 3, spawnX: 276, spawnY: 260, isTop: true }, // Top doors lead to Room 3
+        'G1': { targetRoom: 3, spawnX: 276, spawnY: 260, isTop: true },
+        'F8': { targetRoom: 2, spawnX: 276, spawnY: 60 },  // Bottom doors lead to Room 2
         'G8': { targetRoom: 2, spawnX: 276, spawnY: 60 }
       },
       hasOrb: false,
@@ -238,10 +236,10 @@
               'A2','A3','A4','A5','A6','A7','A8',
               'L2','L3','L4','L5','L6','L7','L8'],
       doors: {
-        'F1': { targetRoom: 3, spawnX: 276, spawnY: 260, isTop: true },
-        'G1': { targetRoom: 3, spawnX: 276, spawnY: 260, isTop: true },
-        'F8': { targetRoom: 1, spawnX: 276, spawnY: 260 },
-        'G8': { targetRoom: 1, spawnX: 276, spawnY: 260 }
+        'F1': { targetRoom: 1, spawnX: 276, spawnY: 260, isTop: true }, // Top doors lead back to Room 1
+        'G1': { targetRoom: 1, spawnX: 276, spawnY: 260, isTop: true },
+        'F8': { targetRoom: 1, spawnX: 276, spawnY: 60 },  // Bottom doors lead back to Room 1
+        'G8': { targetRoom: 1, spawnX: 276, spawnY: 60 }
       },
       hasOrb: true,
       hasStar: false
@@ -251,8 +249,8 @@
               'A2','A3','A4','A5','A6','A7','A8',
               'L2','L3','L4','L5','L6','L7','L8'],
       doors: {
-        'F8': { targetRoom: 2, spawnX: 276, spawnY: 60 },
-        'G8': { targetRoom: 2, spawnX: 276, spawnY: 60 }
+        'F8': { targetRoom: 1, spawnX: 276, spawnY: 60 },  // Bottom doors lead back to Room 1
+        'G8': { targetRoom: 1, spawnX: 276, spawnY: 60 }
       },
       hasOrb: false,
       hasStar: true
@@ -459,7 +457,6 @@
       b.x += b.vx;
       b.y += b.vy;
 
-      // Bullet Hit Detection on Star Entity
       if (rooms[currentRoom].hasStar && starAlive) {
         if (b.x + 16 > starBox.left && b.x < starBox.right &&
             b.y + 16 > starBox.top && b.y < starBox.bottom) {
@@ -467,7 +464,6 @@
           playDamageSfx();
           starHp--;
 
-          // Flash red
           starEntity.classList.add('hit');
           setTimeout(() => { starEntity.classList.remove('hit'); }, 150);
 
@@ -483,7 +479,6 @@
         }
       }
 
-      // Check boundary limits
       if (b.x < 0 || b.x > 584 || b.y < 0 || b.y > 384) {
         b.element.remove();
         activeBullets.splice(i, 1);
@@ -516,7 +511,6 @@
       }
     }
 
-    // Star Collision
     if (rooms[currentRoom].hasStar && starAlive) {
       const starBox = { left: 480, right: 540, top: 170, bottom: 230 };
       if (playerBox.right > starBox.left && playerBox.left < starBox.right &&
@@ -557,7 +551,6 @@
     }
   }
 
-  // Animation Loops Setup
   const orbFrames = ['orb1.png', 'orb2.png'];
   let orbFrameIndex = 0;
 
@@ -607,13 +600,11 @@
 
       showFrame(animKey, frameIndex);
 
-      // Orb Animation Loop
       if (animTimer % 25 === 0 && !orbAbsorbed) {
         orbFrameIndex = (orbFrameIndex + 1) % orbFrames.length;
         orb.style.backgroundImage = `url('${orbFrames[orbFrameIndex]}')`;
       }
 
-      // Star Animation Loop
       if (animTimer % 12 === 0 && starAlive) {
         starFrameIndex = (starFrameIndex + 1) % starFrames.length;
         starEntity.style.backgroundImage = `url('${starFrames[starFrameIndex]}')`;
