@@ -41,21 +41,60 @@
       flex-direction: column;
       justify-content: flex-end;
       align-items: center;
-      padding-bottom: 80px;
+      padding-bottom: 50px;
       box-sizing: border-box;
       transition: opacity 1.2s ease-in-out;
     }
 
-    #play-btn-img {
-      width: 180px;
+    /* Arrow Buttons Container for Hue Shift */
+    #hue-controls {
+      position: absolute;
+      top: 50vh;
+      left: 50vw;
+      transform: translate(-50%, -50%);
+      width: 480px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 560;
+    }
+
+    .arrow-btn {
+      width: 50px;
       height: auto;
+      image-rendering: pixelated;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    .arrow-btn:hover {
+      transform: scale(1.15);
+    }
+
+    /* Title Screen Menu Buttons Row */
+    #menu-buttons-row {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      gap: 30px;
+      z-index: 560;
+    }
+
+    .menu-btn {
+      height: 60px;
+      width: auto;
       image-rendering: pixelated;
       cursor: pointer;
       transition: transform 0.2s ease, opacity 0.3s ease;
     }
 
-    #play-btn-img:hover {
+    .menu-btn:hover {
       transform: scale(1.08);
+    }
+
+    #play-btn-img {
+      height: 80px;
     }
 
     /* Room Canvas */
@@ -299,7 +338,16 @@
 
 <!-- Start Screen Overlay -->
 <div id="start-screen">
-  <img id="play-btn-img" src="play.png" alt="PLAY">
+  <div id="hue-controls">
+    <img id="left-btn-img" class="arrow-btn" src="leftbutton.png" alt="<">
+    <img id="right-btn-img" class="arrow-btn" src="rightbutton.png" alt=">">
+  </div>
+
+  <div id="menu-buttons-row">
+    <img id="tutorial-btn-img" class="menu-btn" src="tutorial.png" alt="TUTORIAL">
+    <img id="play-btn-img" class="menu-btn" src="play.png" alt="PLAY">
+    <img id="options-btn-img" class="menu-btn" src="options.png" alt="OPTIONS">
+  </div>
 </div>
 
 <!-- Standalone Player Element (Renders Centered over Title Screen on Load) -->
@@ -351,6 +399,8 @@
 
   const startScreen = document.getElementById('start-screen');
   const playBtnImg = document.getElementById('play-btn-img');
+  const leftBtnImg = document.getElementById('left-btn-img');
+  const rightBtnImg = document.getElementById('right-btn-img');
   const hudContainer = document.getElementById('hud-container');
 
   const gameOverScreen = document.getElementById('game-over-screen');
@@ -399,12 +449,31 @@
   let playerHp = 5;
   let isInvincible = false;
 
+  // Hue Shift Logic (5 Distinct Color Hues)
+  const hues = [0, 72, 144, 216, 288];
+  let currentHueIndex = 0;
+
+  function updatePlayerHue() {
+    const hueVal = hues[currentHueIndex];
+    player.style.filter = hueVal === 0 ? 'none' : `hue-rotate(${hueVal}deg)`;
+  }
+
+  leftBtnImg.addEventListener('click', () => {
+    currentHueIndex = (currentHueIndex - 1 + hues.length) % hues.length;
+    updatePlayerHue();
+  });
+
+  rightBtnImg.addEventListener('click', () => {
+    currentHueIndex = (currentHueIndex + 1) % hues.length;
+    updatePlayerHue();
+  });
+
   // Actual Game Coordinates
   let posX = 276, posY = 150, speed = 3.75;
 
-  // Render Extra Large Jumby directly in the Screen Center
+  // Render Extra Large Jumby slightly lower on title screen
   player.style.left = '50vw';
-  player.style.top = '42vh';
+  player.style.top = '50vh';
   player.style.transform = 'translate(-50%, -50%) scale(6)';
 
   function getCanvasOffset() {
@@ -435,7 +504,6 @@
     player.style.left = (offset.left + (posX * 1.5)) + 'px';
     player.style.top = (offset.top + (posY * 1.5)) + 'px';
 
-    playBtnImg.style.opacity = '0';
     startScreen.style.opacity = '0';
     
     roomDiv.style.opacity = '1';
@@ -726,6 +794,12 @@
     if (!gameStarted) {
       if (k === ' ' || k === 'enter' || k === 'e') {
         startGame();
+      } else if (k === 'a' || k === 'arrowleft') {
+        currentHueIndex = (currentHueIndex - 1 + hues.length) % hues.length;
+        updatePlayerHue();
+      } else if (k === 'd' || k === 'arrowright') {
+        currentHueIndex = (currentHueIndex + 1) % hues.length;
+        updatePlayerHue();
       }
       return;
     }
