@@ -93,21 +93,19 @@
       display: none;
     }
 
-    #star-entity {
-      width: 60px;
-      height: 60px;
+    /* Star Entity CSS - Matched to Jumby's Dimensions (48x80) */
+    .star-entity {
+      width: 48px;
+      height: 80px;
       position: absolute;
-      left: 480px;
-      top: 170px;
       z-index: 8;
       background-size: contain;
       background-repeat: no-repeat;
       image-rendering: pixelated;
-      display: none;
       transition: opacity 0.6s ease-out, filter 0.1s ease;
     }
 
-    #star-entity.hit {
+    .star-entity.hit {
       filter: drop-shadow(0px 0px 0px red) sepia(1) hue-rotate(-50deg) saturate(1000%);
     }
 
@@ -163,7 +161,6 @@
 <div id="room">
   <div id="fade-overlay"></div>
   <div id="orb"></div>
-  <div id="star-entity"></div>
   <div id="player"></div>
   <div id="dialog-box">
     <div id="dialog-text"></div>
@@ -181,7 +178,6 @@
   const roomDiv = document.getElementById('room');
   const player = document.getElementById('player');
   const orb = document.getElementById('orb');
-  const starEntity = document.getElementById('star-entity');
   const fadeOverlay = document.getElementById('fade-overlay');
   const dialogBox = document.getElementById('dialog-box');
   const dialogText = document.getElementById('dialog-text');
@@ -211,11 +207,41 @@
   let hasBulletAbility = false;
   let orbAbsorbed = false;
 
-  let starHp = 4;
-  let starAlive = true;
-
   let inPrompt = false;
   let selectedOption = 'yes';
+
+  // Master list of all star entities across rooms
+  const starEntities = [];
+
+  function createStar(roomNum, x, y) {
+    const el = document.createElement('div');
+    el.className = 'star-entity';
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    el.style.display = 'none';
+    roomDiv.appendChild(el);
+
+    starEntities.push({
+      element: el,
+      room: roomNum,
+      x: x,
+      y: y,
+      width: 48,
+      height: 80,
+      hp: 4,
+      alive: true
+    });
+  }
+
+  // Room 3 single star entity
+  createStar(3, 480, 160);
+
+  // Room 4 random 8 star entities (keeping away from borders and doors)
+  for (let i = 0; i < 8; i++) {
+    const randomX = Math.floor(Math.random() * (450 - 60 + 1)) + 60;
+    const randomY = Math.floor(Math.random() * (220 - 60 + 1)) + 60;
+    createStar(4, randomX, randomY);
+  }
 
   const rooms = {
     1: {
@@ -226,59 +252,54 @@
         'F8': { targetRoom: 2, spawnX: 276, spawnY: 60 },
         'G8': { targetRoom: 2, spawnX: 276, spawnY: 60 }
       },
-      hasOrb: false,
-      hasStar: false
+      hasOrb: false
     },
     2: {
       walls: ['A1','B1','C1','D1','E1','H1','I1','J1','K1','L1',
               'A2','A3','A4','A5','A6','A7','A8',
               'L2','L3','L4','L5','L6','L7','L8'],
       doors: {
-        'F1': { targetRoom: 1, spawnX: 276, spawnY: 260, isTop: true }, // Top door goes to Room 1
+        'F1': { targetRoom: 1, spawnX: 276, spawnY: 260, isTop: true },
         'G1': { targetRoom: 1, spawnX: 276, spawnY: 260, isTop: true },
-        'F8': { targetRoom: 3, spawnX: 276, spawnY: 60 },               // Bottom door goes to Room 3
+        'F8': { targetRoom: 3, spawnX: 276, spawnY: 60 },
         'G8': { targetRoom: 3, spawnX: 276, spawnY: 60 }
       },
-      hasOrb: true,
-      hasStar: false
+      hasOrb: true
     },
     3: {
       walls: ['A1','B1','C1','D1','E1','H1','I1','J1','K1','L1',
               'A2','A3','A4','A5','A6','A7','A8',
               'L2','L3','L4','L5','L6','L7','L8'],
       doors: {
-        'F1': { targetRoom: 2, spawnX: 276, spawnY: 260, isTop: true }, // Top door goes to Room 2
+        'F1': { targetRoom: 2, spawnX: 276, spawnY: 260, isTop: true },
         'G1': { targetRoom: 2, spawnX: 276, spawnY: 260, isTop: true },
-        'F8': { targetRoom: 4, spawnX: 276, spawnY: 60 },               // Bottom door goes to Room 4
+        'F8': { targetRoom: 4, spawnX: 276, spawnY: 60 },
         'G8': { targetRoom: 4, spawnX: 276, spawnY: 60 }
       },
-      hasOrb: false,
-      hasStar: true
+      hasOrb: false
     },
     4: {
       walls: ['A1','B1','C1','D1','E1','H1','I1','J1','K1','L1',
               'A2','A3','A4','A5','A6','A7','A8',
               'L2','L3','L4','L5','L6','L7','L8'],
       doors: {
-        'F1': { targetRoom: 3, spawnX: 276, spawnY: 260, isTop: true }, // Top door goes to Room 3
+        'F1': { targetRoom: 3, spawnX: 276, spawnY: 260, isTop: true },
         'G1': { targetRoom: 3, spawnX: 276, spawnY: 260, isTop: true },
-        'F8': { targetRoom: 5, spawnX: 276, spawnY: 60 },               // Bottom door goes to Room 5
+        'F8': { targetRoom: 5, spawnX: 276, spawnY: 60 },
         'G8': { targetRoom: 5, spawnX: 276, spawnY: 60 }
       },
-      hasOrb: false,
-      hasStar: false
+      hasOrb: false
     },
     5: {
       walls: ['A1','B1','C1','D1','E1','H1','I1','J1','K1','L1',
               'A2','A3','A4','A5','A6','A7','A8',
               'L2','L3','L4','L5','L6','L7','L8',
-              'F8','G8'], // Bottom wall sealed off
+              'F8','G8'],
       doors: {
-        'F1': { targetRoom: 4, spawnX: 276, spawnY: 260, isTop: true }, // Top door goes back to Room 4
+        'F1': { targetRoom: 4, spawnX: 276, spawnY: 260, isTop: true },
         'G1': { targetRoom: 4, spawnX: 276, spawnY: 260, isTop: true }
       },
-      hasOrb: false,
-      hasStar: false
+      hasOrb: false
     }
   };
 
@@ -334,7 +355,11 @@
     }
 
     orb.style.display = (roomData.hasOrb && !orbAbsorbed) ? 'block' : 'none';
-    starEntity.style.display = (roomData.hasStar && starAlive) ? 'block' : 'none';
+
+    // Update visibility for star entities
+    starEntities.forEach(star => {
+      star.element.style.display = (star.room === roomNum && star.alive) ? 'block' : 'none';
+    });
   }
 
   const animations = {
@@ -475,34 +500,40 @@
   }
 
   function updateBullets() {
-    const starBox = { left: 480, right: 540, top: 170, bottom: 230 };
-
     for (let i = activeBullets.length - 1; i >= 0; i--) {
       const b = activeBullets[i];
       b.x += b.vx;
       b.y += b.vy;
 
-      if (rooms[currentRoom].hasStar && starAlive) {
-        if (b.x + 16 > starBox.left && b.x < starBox.right &&
-            b.y + 16 > starBox.top && b.y < starBox.bottom) {
-          
-          playDamageSfx();
-          starHp--;
+      let bulletHit = false;
 
-          starEntity.classList.add('hit');
-          setTimeout(() => { starEntity.classList.remove('hit'); }, 150);
+      // Hit detection against all active stars in current room
+      for (const star of starEntities) {
+        if (star.room === currentRoom && star.alive) {
+          if (b.x + 16 > star.x && b.x < star.x + star.width &&
+              b.y + 16 > star.y + 20 && b.y < star.y + star.height) {
+            
+            playDamageSfx();
+            star.hp--;
 
-          if (starHp <= 0) {
-            starAlive = false;
-            starEntity.style.opacity = '0';
-            setTimeout(() => { starEntity.style.display = 'none'; }, 600);
+            star.element.classList.add('hit');
+            setTimeout(() => { star.element.classList.remove('hit'); }, 150);
+
+            if (star.hp <= 0) {
+              star.alive = false;
+              star.element.style.opacity = '0';
+              setTimeout(() => { star.element.style.display = 'none'; }, 600);
+            }
+
+            b.element.remove();
+            activeBullets.splice(i, 1);
+            bulletHit = true;
+            break;
           }
-
-          b.element.remove();
-          activeBullets.splice(i, 1);
-          continue;
         }
       }
+
+      if (bulletHit) continue;
 
       if (b.x < 0 || b.x > 584 || b.y < 0 || b.y > 384) {
         b.element.remove();
@@ -536,11 +567,13 @@
       }
     }
 
-    if (rooms[currentRoom].hasStar && starAlive) {
-      const starBox = { left: 480, right: 540, top: 170, bottom: 230 };
-      if (playerBox.right > starBox.left && playerBox.left < starBox.right &&
-          playerBox.bottom > starBox.top && playerBox.top < starBox.bottom) {
-        return true;
+    // Player collision with Star entities in current room
+    for (const star of starEntities) {
+      if (star.room === currentRoom && star.alive) {
+        if (playerBox.right > star.x && playerBox.left < star.x + star.width &&
+            playerBox.bottom > star.y + 20 && playerBox.top < star.y + star.height) {
+          return true;
+        }
       }
     }
 
@@ -630,9 +663,13 @@
         orb.style.backgroundImage = `url('${orbFrames[orbFrameIndex]}')`;
       }
 
-      if (animTimer % 12 === 0 && starAlive) {
+      if (animTimer % 12 === 0) {
         starFrameIndex = (starFrameIndex + 1) % starFrames.length;
-        starEntity.style.backgroundImage = `url('${starFrames[starFrameIndex]}')`;
+        starEntities.forEach(star => {
+          if (star.alive) {
+            star.element.style.backgroundImage = `url('${starFrames[starFrameIndex]}')`;
+          }
+        });
       }
 
       checkDoorTriggers();
