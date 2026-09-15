@@ -216,17 +216,17 @@
       }
     }
 
-    /* Red outline flashing for interactible elements */
+    /* White outline flashing for interactible elements */
     .interact-highlight {
-      animation: flashRedOutline 0.8s infinite alternate !important;
+      animation: flashWhiteOutline 0.8s infinite alternate !important;
     }
 
-    @keyframes flashRedOutline {
+    @keyframes flashWhiteOutline {
       0% {
-        filter: drop-shadow(0px 0px 4px rgba(255, 0, 0, 0.4));
+        filter: drop-shadow(0px 0px 4px rgba(255, 255, 255, 0.4));
       }
       100% {
-        filter: drop-shadow(0px 0px 12px rgba(255, 0, 0, 1)) drop-shadow(0px 0px 3px red);
+        filter: drop-shadow(0px 0px 12px rgba(255, 255, 255, 1)) drop-shadow(0px 0px 3px white);
       }
     }
 
@@ -317,6 +317,7 @@
     .option {
       padding: 2px 8px;
       color: #888;
+      cursor: pointer;
     }
 
     .option.selected {
@@ -446,6 +447,8 @@
 
   const startScreen = document.getElementById('start-screen');
   const playBtnImg = document.getElementById('play-btn-img');
+  const tutorialBtnImg = document.getElementById('tutorial-btn-img');
+  const optionsBtnImg = document.getElementById('options-btn-img');
   const leftBtnImg = document.getElementById('left-btn-img');
   const rightBtnImg = document.getElementById('right-btn-img');
   const hudContainer = document.getElementById('hud-container');
@@ -491,6 +494,25 @@
     unlockSfx.play().catch(() => {});
   }
 
+  function playSwitchSfx() {
+    const switchSfx = new Audio('switch.mp3');
+    switchSfx.play().catch(() => {});
+  }
+
+  function playHoverSfx() {
+    const hoverSfx = new Audio('hover.mp3');
+    hoverSfx.play().catch(() => {});
+  }
+
+  // Hover SFX for Title Screen Buttons
+  [tutorialBtnImg, playBtnImg, optionsBtnImg].forEach(btn => {
+    btn.addEventListener('mouseenter', () => {
+      if (!gameStarted) {
+        playHoverSfx();
+      }
+    });
+  });
+
   let gameStarted = false;
   let isGameOver = false;
   let gameOverOption = 'yes';
@@ -524,11 +546,13 @@
   function nextHue() {
     currentHueIndex = (currentHueIndex + 1) % hues.length;
     updatePlayerHue();
+    playSwitchSfx();
   }
 
   leftBtnImg.addEventListener('click', () => {
     currentHueIndex = (currentHueIndex - 1 + hues.length) % hues.length;
     updatePlayerHue();
+    playSwitchSfx();
   });
 
   rightBtnImg.addEventListener('click', nextHue);
@@ -629,6 +653,42 @@
     posX = 276;
     posY = 150;
     updatePlayerPosition();
+    loadRoom(1);
+  }
+
+  function returnToTitleScreen() {
+    playerHp = 3;
+    updateHeartsUI();
+    isGameOver = false;
+    gameStarted = false;
+    hasBulletAbility = false;
+    orbAbsorbed = false;
+    hasKey = false;
+    keyDropped = false;
+    keyPickedUp = false;
+    room3Unlocked = false;
+
+    gameOverScreen.style.opacity = '0';
+    setTimeout(() => {
+      gameOverScreen.style.display = 'none';
+    }, 500);
+
+    roomDiv.style.opacity = '0';
+    hudContainer.style.opacity = '0';
+
+    startScreen.style.display = 'flex';
+    setTimeout(() => {
+      startScreen.style.opacity = '1';
+    }, 50);
+
+    player.style.cursor = 'pointer';
+    player.style.transition = 'none';
+    player.style.left = '50vw';
+    player.style.top = '50vh';
+    player.style.transform = 'translate(-50%, -50%) scale(6)';
+
+    posX = 276;
+    posY = 150;
     loadRoom(1);
   }
 
@@ -851,6 +911,18 @@
   const activeBullets = [];
   const enemyBullets = [];
 
+  goOptYes.addEventListener('click', () => {
+    if (isGameOver) {
+      resetGame();
+    }
+  });
+
+  goOptNo.addEventListener('click', () => {
+    if (isGameOver) {
+      returnToTitleScreen();
+    }
+  });
+
   window.addEventListener('keydown', (e) => {
     const k = e.key.toLowerCase();
     keys[k] = true;
@@ -861,6 +933,7 @@
       } else if (k === 'a' || k === 'arrowleft') {
         currentHueIndex = (currentHueIndex - 1 + hues.length) % hues.length;
         updatePlayerHue();
+        playSwitchSfx();
       } else if (k === 'd' || k === 'arrowright') {
         nextHue();
       }
@@ -877,6 +950,8 @@
       } else if (k === ' ' || k === 'enter') {
         if (gameOverOption === 'yes') {
           resetGame();
+        } else {
+          returnToTitleScreen();
         }
       }
       return;
