@@ -8,7 +8,7 @@
     body {
       margin: 0;
       padding: 0;
-      background-color: #0b1a0d;
+      background-color: #000000;
       display: flex;
       flex-direction: column;
       justify-content: flex-start;
@@ -80,6 +80,16 @@
       object-fit: contain;
     }
 
+    #player.invincible {
+      animation: playerHit 0.2s infinite;
+    }
+
+    @keyframes playerHit {
+      0% { opacity: 1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 1; }
+    }
+
     #orb {
       width: 100px;
       height: 100px;
@@ -93,7 +103,6 @@
       display: none;
     }
 
-    /* Star Entity CSS - Matched to Jumby's Dimensions (48x80) */
     .star-entity {
       width: 48px;
       height: 80px;
@@ -114,6 +123,17 @@
       height: 16px;
       position: absolute;
       z-index: 15;
+      background-size: contain;
+      background-repeat: no-repeat;
+      image-rendering: pixelated;
+      pointer-events: none;
+    }
+
+    .enemy-bullet {
+      width: 16px;
+      height: 16px;
+      position: absolute;
+      z-index: 14;
       background-size: contain;
       background-repeat: no-repeat;
       image-rendering: pixelated;
@@ -152,6 +172,40 @@
       background: #444;
       border-radius: 3px;
     }
+
+    /* Hearts HUD UI */
+    #hud-container {
+      margin-top: 220px;
+      display: flex;
+      gap: 12px;
+      z-index: 50;
+    }
+
+    .heart {
+      width: 40px;
+      height: 40px;
+      background-image: url('heart.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      image-rendering: pixelated;
+      transition: filter 0.2s ease;
+    }
+
+    .heart.empty {
+      filter: grayscale(100%) opacity(0.35);
+    }
+
+    .heart.flicker {
+      animation: heartFlicker 0.4s ease-in-out;
+    }
+
+    @keyframes heartFlicker {
+      0% { filter: grayscale(100%) opacity(0.35); }
+      25% { filter: grayscale(0%) opacity(1); }
+      50% { filter: grayscale(100%) opacity(0.35); }
+      75% { filter: grayscale(0%) opacity(1); }
+      100% { filter: grayscale(0%) opacity(1); }
+    }
   </style>
 </head>
 <body>
@@ -169,6 +223,14 @@
       <span id="opt-no" class="option">No</span>
     </div>
   </div>
+</div>
+
+<div id="hud-container">
+  <div class="heart" id="heart-0"></div>
+  <div class="heart" id="heart-1"></div>
+  <div class="heart" id="heart-2"></div>
+  <div class="heart" id="heart-3"></div>
+  <div class="heart" id="heart-4"></div>
 </div>
 
 <script>
@@ -210,7 +272,47 @@
   let inPrompt = false;
   let selectedOption = 'yes';
 
-  // Master list of all star entities across rooms
+  // Jumby Health & Healing Mechanics
+  let playerHp = 5;
+  let isInvincible = false;
+
+  function updateHeartsUI() {
+    for (let i = 0; i < 5; i++) {
+      const heartEl = document.getElementById(`heart-${i}`);
+      if (i < playerHp) {
+        heartEl.classList.remove('empty');
+      } else {
+        heartEl.classList.add('empty');
+      }
+    }
+  }
+
+  setInterval(() => {
+    if (playerHp < 5) {
+      const healIndex = playerHp;
+      playerHp++;
+      const heartEl = document.getElementById(`heart-${healIndex}`);
+      heartEl.classList.remove('empty');
+      heartEl.classList.add('flicker');
+      setTimeout(() => { heartEl.classList.remove('flicker'); }, 400);
+    }
+  }, 5000);
+
+  function takePlayerDamage() {
+    if (isInvincible || playerHp <= 0) return;
+    playDamageSfx();
+    playerHp--;
+    updateHeartsUI();
+
+    isInvincible = true;
+    player.classList.add('invincible');
+    setTimeout(() => {
+      isInvincible = false;
+      player.classList.remove('invincible');
+    }, 1000);
+  }
+
+  // Star Entity Management
   const starEntities = [];
 
   function createStar(roomNum, x, y) {
@@ -229,14 +331,19 @@
       width: 48,
       height: 80,
       hp: 4,
-      alive: true
+      alive: true,
+      vx: 0,
+      vy: 0,
+      state: 'idle', // 'idle' or 'walking'
+      timer: Math.random() * 60,
+      shootTimer: 0
     });
   }
 
-  // Room 3 single star entity
+  // Room 3 Star
   createStar(3, 480, 160);
 
-  // Room 4 random 8 star entities (keeping away from borders and doors)
+  // Room 4 Stars
   for (let i = 0; i < 8; i++) {
     const randomX = Math.floor(Math.random() * (450 - 60 + 1)) + 60;
     const randomY = Math.floor(Math.random() * (220 - 60 + 1)) + 60;
@@ -356,7 +463,6 @@
 
     orb.style.display = (roomData.hasOrb && !orbAbsorbed) ? 'block' : 'none';
 
-    // Update visibility for star entities
     starEntities.forEach(star => {
       star.element.style.display = (star.room === roomNum && star.alive) ? 'block' : 'none';
     });
@@ -398,6 +504,7 @@
   const keys = {};
 
   const activeBullets = [];
+  const enemyBullets = [];
 
   window.addEventListener('keydown', (e) => {
     const k = e.key.toLowerCase();
@@ -499,7 +606,72 @@
     activeBullets.push({ element: bulletDiv, x: bX, y: bY, vx: velX, vy: velY });
   }
 
+  function enemyShoot(star) {
+    const eBullet = document.createElement('div');
+    eBullet.className = 'enemy-bullet';
+    eBullet.style.backgroundImage = "url('bullet.png')";
+
+    const startX = star.x + 16;
+    const startY = star.y + 32;
+
+    // Vector calculation targeting Jumby's center
+    const targetX = posX + 24;
+    const targetY = posY + 40;
+    const angle = Math.atan2(targetY - startY, targetX - startX);
+
+    const bSpeed = 4.5;
+    const vx = Math.cos(angle) * bSpeed;
+    const vy = Math.sin(angle) * bSpeed;
+
+    eBullet.style.left = startX + 'px';
+    eBullet.style.top = startY + 'px';
+    roomDiv.appendChild(eBullet);
+
+    enemyBullets.push({ element: eBullet, x: startX, y: startY, vx: vx, vy: vy, room: star.room });
+  }
+
+  function updateStars() {
+    starEntities.forEach(star => {
+      if (star.room !== currentRoom || !star.alive) return;
+
+      // Shooting Timer (Every 2 Seconds = 120 Frames)
+      star.shootTimer++;
+      if (star.shootTimer >= 120) {
+        star.shootTimer = 0;
+        enemyShoot(star);
+      }
+
+      // Random Wandering State AI
+      star.timer--;
+      if (star.timer <= 0) {
+        if (star.state === 'idle') {
+          star.state = 'walking';
+          star.timer = Math.floor(Math.random() * 60) + 40; // Walk for 0.6-1.6s
+          const dirs = [{x: 1, y: 0}, {x: -1, y: 0}, {x: 0, y: 1}, {x: 0, y: -1}, {x: 0.7, y: 0.7}, {x: -0.7, y: -0.7}];
+          const chosen = dirs[Math.floor(Math.random() * dirs.length)];
+          star.vx = chosen.x * 1.5;
+          star.vy = chosen.y * 1.5;
+        } else {
+          star.state = 'idle';
+          star.timer = 120; // Stand still for ~2 seconds
+          star.vx = 0;
+          star.vy = 0;
+        }
+      }
+
+      if (star.state === 'walking') {
+        const nextX = Math.max(50, Math.min(500, star.x + star.vx));
+        const nextY = Math.max(50, Math.min(270, star.y + star.vy));
+        star.x = nextX;
+        star.y = nextY;
+        star.element.style.left = star.x + 'px';
+        star.element.style.top = star.y + 'px';
+      }
+    });
+  }
+
   function updateBullets() {
+    // Player Bullets
     for (let i = activeBullets.length - 1; i >= 0; i--) {
       const b = activeBullets[i];
       b.x += b.vx;
@@ -507,7 +679,6 @@
 
       let bulletHit = false;
 
-      // Hit detection against all active stars in current room
       for (const star of starEntities) {
         if (star.room === currentRoom && star.alive) {
           if (b.x + 16 > star.x && b.x < star.x + star.width &&
@@ -544,6 +715,38 @@
       b.element.style.left = b.x + 'px';
       b.element.style.top = b.y + 'px';
     }
+
+    // Enemy Bullets
+    for (let i = enemyBullets.length - 1; i >= 0; i--) {
+      const eb = enemyBullets[i];
+      if (eb.room !== currentRoom) {
+        eb.element.remove();
+        enemyBullets.splice(i, 1);
+        continue;
+      }
+
+      eb.x += eb.vx;
+      eb.y += eb.vy;
+
+      const playerBox = { left: posX + 4, right: posX + 44, top: posY + 40, bottom: posY + 80 };
+
+      if (eb.x + 16 > playerBox.left && eb.x < playerBox.right &&
+          eb.y + 16 > playerBox.top && eb.y < playerBox.bottom) {
+        takePlayerDamage();
+        eb.element.remove();
+        enemyBullets.splice(i, 1);
+        continue;
+      }
+
+      if (eb.x < 0 || eb.x > 584 || eb.y < 0 || eb.y > 384) {
+        eb.element.remove();
+        enemyBullets.splice(i, 1);
+        continue;
+      }
+
+      eb.element.style.left = eb.x + 'px';
+      eb.element.style.top = eb.y + 'px';
+    }
   }
 
   function isColliding(newX, newY) {
@@ -567,11 +770,11 @@
       }
     }
 
-    // Player collision with Star entities in current room
     for (const star of starEntities) {
       if (star.room === currentRoom && star.alive) {
         if (playerBox.right > star.x && playerBox.left < star.x + star.width &&
             playerBox.bottom > star.y + 20 && playerBox.top < star.y + star.height) {
+          takePlayerDamage();
           return true;
         }
       }
@@ -584,7 +787,7 @@
     if (isTransitioning) return;
 
     const feetX = posX + 24;
-    const feetY = posY + 60;
+    const feetY = posY + 35; // Position offset to handle top/bottom door triggers seamlessly
     const colIndex = Math.floor(feetX / TILE_SIZE);
     const rowIndex = Math.floor(feetY / TILE_SIZE) + 1;
     const currentTile = `${COLS[colIndex]}${rowIndex}`;
@@ -616,6 +819,7 @@
   let starFrameIndex = 0;
 
   loadRoom(1);
+  updateHeartsUI();
 
   function gameLoop() {
     if (!isTransitioning && !inPrompt) {
@@ -672,6 +876,7 @@
         });
       }
 
+      updateStars();
       checkDoorTriggers();
     } else {
       if (!walkSfx.paused) walkSfx.pause();
