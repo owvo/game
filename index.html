@@ -46,24 +46,26 @@
       transition: opacity 1.2s ease-in-out;
     }
 
-    /* Arrow Buttons Container - Expanded width & larger arrow size */
+    /* Arrow Buttons Container */
     #hue-controls {
       position: absolute;
       top: 50vh;
       left: 50vw;
       transform: translate(-50%, -50%);
-      width: 680px; /* Pushed arrows further away from Jumby */
+      width: 680px;
       display: flex;
       justify-content: space-between;
       align-items: center;
       z-index: 560;
+      pointer-events: none; /* Let clicks pass through empty space to Jumby */
     }
 
     .arrow-btn {
-      width: 70px; /* Made arrows larger */
+      width: 70px;
       height: auto;
       image-rendering: pixelated;
       cursor: pointer;
+      pointer-events: auto;
       transition: transform 0.15s ease;
     }
 
@@ -71,18 +73,18 @@
       transform: scale(1.15);
     }
 
-    /* Title Screen Menu Buttons Row */
+    /* Title Screen Menu Buttons Row - Bigger and Farther Apart */
     #menu-buttons-row {
       display: flex;
       flex-direction: row;
       justify-content: center;
       align-items: center;
-      gap: 30px;
+      gap: 70px; /* Farther apart */
       z-index: 560;
     }
 
     .menu-btn {
-      height: 50px; /* Scaled secondary buttons down to highlight play */
+      height: 70px; /* Bigger default size */
       width: auto;
       image-rendering: pixelated;
       cursor: pointer;
@@ -93,9 +95,9 @@
       transform: scale(1.08);
     }
 
-    /* Play button set to 2x size of tutorial/options buttons (100px vs 50px) */
+    /* Play button noticeably larger */
     #play-btn-img {
-      height: 100px;
+      height: 140px;
     }
 
     /* Room Canvas */
@@ -174,6 +176,7 @@
       position: fixed;
       z-index: 550;
       transform-origin: center center;
+      cursor: pointer;
     }
 
     #player img {
@@ -296,18 +299,19 @@
       border-radius: 3px;
     }
 
+    /* HUD Hearts: Raised higher and slightly bigger */
     #hud-container {
-      margin-top: 220px;
+      margin-top: 195px;
       display: flex;
-      gap: 12px;
+      gap: 14px;
       z-index: 50;
       opacity: 0;
       transition: opacity 1.2s ease-in-out;
     }
 
     .heart {
-      width: 40px;
-      height: 40px;
+      width: 48px;
+      height: 48px;
       background-image: url('heart.png');
       background-size: contain;
       background-repeat: no-repeat;
@@ -329,6 +333,20 @@
       50% { filter: grayscale(100%) opacity(0.35); }
       75% { filter: grayscale(0%) opacity(1); }
       100% { filter: grayscale(0%) opacity(1); }
+    }
+
+    /* Version watermark in bottom right */
+    #version-tag {
+      position: fixed;
+      bottom: 12px;
+      right: 16px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: bold;
+      letter-spacing: 1px;
+      z-index: 1000;
+      pointer-events: none;
+      opacity: 0.8;
     }
   </style>
 </head>
@@ -379,9 +397,10 @@
   <div class="heart" id="heart-0"></div>
   <div class="heart" id="heart-1"></div>
   <div class="heart" id="heart-2"></div>
-  <div class="heart" id="heart-3"></div>
-  <div class="heart" id="heart-4"></div>
 </div>
+
+<!-- Bottom Right Version Tag -->
+<div id="version-tag">JUMBY_VER_67</div>
 
 <script>
   const TILE_SIZE = 50;
@@ -434,6 +453,11 @@
     loseSfx.play().catch(() => {});
   }
 
+  function playStarDeathSfx() {
+    const starDeathSfx = new Audio('stardeath.mp3');
+    starDeathSfx.play().catch(() => {});
+  }
+
   let gameStarted = false;
   let isGameOver = false;
   let gameOverOption = 'yes';
@@ -446,7 +470,7 @@
   let inPrompt = false;
   let selectedOption = 'yes';
 
-  let playerHp = 5;
+  let playerHp = 3;
   let isInvincible = false;
 
   // Hue Shift Logic
@@ -458,14 +482,23 @@
     player.style.filter = hueVal === 0 ? 'none' : `hue-rotate(${hueVal}deg)`;
   }
 
+  function nextHue() {
+    currentHueIndex = (currentHueIndex + 1) % hues.length;
+    updatePlayerHue();
+  }
+
   leftBtnImg.addEventListener('click', () => {
     currentHueIndex = (currentHueIndex - 1 + hues.length) % hues.length;
     updatePlayerHue();
   });
 
-  rightBtnImg.addEventListener('click', () => {
-    currentHueIndex = (currentHueIndex + 1) % hues.length;
-    updatePlayerHue();
+  rightBtnImg.addEventListener('click', nextHue);
+
+  // Click on Jumby on the title screen to shift hue
+  player.addEventListener('click', () => {
+    if (!gameStarted) {
+      nextHue();
+    }
   });
 
   // Game Coordinates
@@ -494,6 +527,7 @@
     if (gameStarted) return;
     gameStarted = true;
 
+    player.style.cursor = 'default';
     playJingleSfx();
 
     const offset = getCanvasOffset();
@@ -520,7 +554,7 @@
   playBtnImg.addEventListener('click', startGame);
 
   function updateHeartsUI() {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
       const heartEl = document.getElementById(`heart-${i}`);
       if (i < playerHp) {
         heartEl.classList.remove('empty');
@@ -529,17 +563,6 @@
       }
     }
   }
-
-  setInterval(() => {
-    if (playerHp < 5 && playerHp > 0 && !isGameOver) {
-      const healIndex = playerHp;
-      playerHp++;
-      const heartEl = document.getElementById(`heart-${healIndex}`);
-      heartEl.classList.remove('empty');
-      heartEl.classList.add('flicker');
-      setTimeout(() => { heartEl.classList.remove('flicker'); }, 400);
-    }
-  }, 5000);
 
   function triggerGameOver() {
     isGameOver = true;
@@ -556,7 +579,7 @@
   }
 
   function resetGame() {
-    playerHp = 5;
+    playerHp = 3;
     updateHeartsUI();
     isGameOver = false;
     gameOverScreen.style.opacity = '0';
@@ -794,8 +817,7 @@
         currentHueIndex = (currentHueIndex - 1 + hues.length) % hues.length;
         updatePlayerHue();
       } else if (k === 'd' || k === 'arrowright') {
-        currentHueIndex = (currentHueIndex + 1) % hues.length;
-        updatePlayerHue();
+        nextHue();
       }
       return;
     }
@@ -995,7 +1017,6 @@
           if (b.x + 16 > star.x && b.x < star.x + star.width &&
               b.y + 16 > star.y + 20 && b.y < star.y + star.height) {
             
-            playDamageSfx();
             star.hp--;
 
             star.element.classList.add('hit');
@@ -1003,8 +1024,11 @@
 
             if (star.hp <= 0) {
               star.alive = false;
+              playStarDeathSfx(); // Plays stardeath.mp3 when star dies
               star.element.style.opacity = '0';
               setTimeout(() => { star.element.style.display = 'none'; }, 600);
+            } else {
+              playDamageSfx();
             }
 
             b.element.remove();
